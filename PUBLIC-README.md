@@ -1,0 +1,76 @@
+# Organik Apps Pebble Connector
+
+One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.3.0 requires macOS 14 or newer.
+
+Drag the app into Applications and open it. Use the sidebar to select an app. Each connector has the same three sections: **Setup**, **Requirements**, and **Troubleshooting**. Follow the numbered Setup steps from top to bottom, then use Check connection to refresh its requirements.
+
+## Overview
+
+The overview shows green and red lights for each visible app’s requirements. Green means the requirement passed; red means it needs attention or has not been checked. Hover over a requirement for details. **Fix** opens that connector’s setup page and appears only when a requirement is red. Use the sidebar for other navigation.
+
+The Private connection light checks that the configured HTTPS route reaches the service from this Mac. It is separate from phone verification.
+
+Only automatically checked Mac requirements affect the lights. A phone that has not connected since startup is not a failed requirement. Notesy shows its last phone contact as information in its Setup section. Refresh each app on the watch after setup to confirm end-to-end operation; no confirmation checkbox is required.
+
+## Settings
+
+- **Visible connectors:** hide apps you do not use from the sidebar and overview. Hiding preserves pairing, preferences, and any running service. Use the connector’s Troubleshooting controls to stop a hosted service before hiding it if you want to stop sync.
+- **Tesla — Coming soon:** hidden by default. The optional page manages an existing personal Tesla gateway; it does not install a gateway or perform Tesla developer enrollment. It is included in the same app download.
+- **Connector updates:** check manually, or turn on automatic checks and choose an interval from 1 to 168 hours. Checks run while the connector is open, including with its window closed. You approve downloading and installing each update. Watch apps are updated separately.
+- **Menu bar mode:** Settings → Appearance can hide the Dock icon and keep a menu bar shortcut to the Connector. Your choice is remembered.
+- **Start at login:** opens the connector when you sign into your Mac. macOS may ask you to allow it in System Settings → General → Login Items.
+
+PebClaw has been removed from this connector.
+
+## Connect your apps
+
+### Notesy
+
+Choose your Obsidian vault, start the service, then start the private connection. **Connect phone** shows a one-time QR code. Scan it, get the pairing details, then paste them into Pebble → Notesy → Settings on your phone. Test and save. Open Notesy on your watch to confirm it connects. The watch package is available from the app menu.
+
+Notesy offers Quick Dictate for one short thought and Stitch for longer notes, including append. Pebble dictation is limited to 15-second sections; Stitch saves each accepted section before starting the next. Back stops the sequence.
+
+Your vault remains on your Mac. Dictated notes, browsing, pending drafts, and pairing keep their existing behavior. See the [Notesy guide](https://github.com/GeezusChrotch/notesy#readme) for watch controls and supported content.
+
+### Beepster
+
+Keep Beeper Desktop open. Select **Enable Beepster**, then follow the numbered steps and select **Set up service**. The guided flow installs or repairs the service, helps you obtain the Beeper Desktop API token, enables Contacts access, and starts the private connection. Select **Connect phone**, save the details in Pebble → Beepster → Settings, and refresh your watch.
+
+Opening Beeper Desktop, setting its token, allowing Contacts, and pairing are visible setup steps. Troubleshooting offers service and route repairs and Contacts privacy settings. OpenClaw and Hermes approvals are optional and do not affect the required lights. In the optional agent setup section, pair OpenClaw access or install the Hermes bridge, then link an agent session to its matching Telegram chat. Review the displayed confirmation before installation or linking. Restart Hermes when idle if requested. Connection checks do not prove watch delivery; test an approval from your own session.
+
+### Reminderz
+
+Select **Enable Reminderz**, allow Reminders access, start the private connection, and connect your phone. Scan the one-time code and copy its details into Pebble → Reminderz → Settings. Save, refresh the watch.
+
+If the service will not start, stop and quit the standalone Reminderz Connector first. Only one app can own its listener. If Keychain access was dismissed, use **Troubleshooting → Unlock Keychain** to retry.
+
+### Pome
+
+Keep Itsyhome installed and running with its Webhooks/CLI server enabled. Enter the service host and port in Setup step 1, then select **Save and check service**. Start the private connection and copy the phone address into Pome’s Pebble settings. Save, refresh your watch.
+
+## Moving from older connectors
+
+Keep your existing phone settings and pairing. You normally do not need to reinstall a watch app solely to change Mac connectors.
+
+- **Beepster:** enable it here and check the connection. Its existing background service is reused; enabling the page does not reinstall or restart it. Once ready, quit the old connector window. Keep Beeper Desktop and Tailscale running.
+- **Reminderz:** in the old connector, turn off Start at Login, stop the service, and quit. Enable Reminderz here and approve Keychain and Reminders access if requested. Check the connection, restore its private route if needed, then refresh your watch. Enable startup in this app’s Settings if desired.
+- **Pome:** keep Itsyhome running and enter its existing host and port. Matching private routes are reused.
+- **Previous personal edition:** install this same unified app. Notesy, Beepster, and Reminderz preferences are retained. Tesla is hidden until enabled in Settings. PebClaw is no longer hosted here; an independently running relay is not uninstalled.
+
+Keep the older app available until a watch refresh succeeds. To roll back, quit this connector and reopen the previous app. For Reminderz, restart its service and restore its startup preference if needed.
+
+## When a connection needs attention
+
+Keep the Mac awake and signed into Tailscale, and connect the phone to the same Tailscale network. Open the app’s page with **Fix**, read the red requirement’s explanation, follow Setup, and run **Check connection**. Troubleshooting contains the individual repair controls.
+
+Existing private routes are reused. A port belonging to another service is preserved. Closing the window keeps enabled services running; quitting stops Notesy and Reminderz hosted by this app. Beepster’s background service and independently running Itsyhome/Tesla gateways continue separately.
+
+[Privacy](PRIVACY.md) · [Source and releases](https://github.com/GeezusChrotch/organik-pebble-connector)
+
+## Acknowledgments
+
+Thank you to the upstream apps, developers, communities, and tools that made this possible. See [Acknowledgments](ACKNOWLEDGMENTS.md), also available from the app menu.
+
+In Settings → Appearance, enable “Run in the menu bar and hide the Dock icon” to keep the Connector in the menu bar. The menu can reopen the window, open Settings, check connections or updates, and quit. Turn the option off to restore the Dock icon. Closing the window keeps services running.
+
+Choose an app in the sidebar and follow its numbered Setup steps: prepare the source app or vault, grant required access, start the private connection, then pair your phone. Setup actions remain visible; Requirements shows current health, and Troubleshooting contains recovery actions.
