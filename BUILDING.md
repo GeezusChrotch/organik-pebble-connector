@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector
 
-A native macOS 14+ connector for Notesy, Beepster, Reminderz, and Pome. Version **0.3.0** introduces a shared setup experience, a requirements-only overview, connector visibility, and Sparkle updates.
+A native macOS 14+ connector for Notesy, Beepster, Reminderz, and Pome. Version **0.4.4** introduces a shared setup experience, a requirements-only overview, connector visibility, and Sparkle updates.
 
 There is one build. Tesla is included but hidden by default, with **Coming soon** on its visibility option. It manages an existing personal gateway only. PebClaw is removed. Existing connector credentials, Notesy vault bookmarks, service endpoints, and watch protocols are preserved.
 
@@ -86,3 +86,6 @@ It reuses the validated release executable with a separate bundle identifier and
 In Settings → Appearance, enable “Run in the menu bar and hide the Dock icon” to keep the Connector in the menu bar. The menu can reopen the window, open Settings, check connections or updates, and quit. Turn the option off to restore the Dock icon. Closing the window keeps services running.
 
 Choose an app in the sidebar and follow its numbered Setup steps: prepare the source app or vault, grant required access, start the private connection, then pair your phone. Setup actions remain visible; Requirements shows current health, and Troubleshooting contains recovery actions.
+
+
+For this release, set `BEEPSTER_GATEWAY_SOURCE="$PWD/vendor/beepster-gateway"` to use the exact bundled gateway source, and use the Notesy `v1.1.0` source release. Production dependencies are installed from the included lockfile.

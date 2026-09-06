@@ -306,7 +306,7 @@ struct ExternalServiceView: View {
                     GridRow { Text("Service port"); TextField("Local port", text: $service.localPort) }
                 }.textFieldStyle(.roundedBorder).disabled(service.busy)
                 Text("Use 127.0.0.1 for a service on this Mac, or the host of the computer running it.").font(.caption).foregroundStyle(.secondary)
-                Button("Save and check service") { Task { await service.check() } }.buttonStyle(.borderedProminent).disabled(service.busy)
+                Button("Save and check service") { Task { await service.saveAndCheck() } }.buttonStyle(.borderedProminent).disabled(service.busy)
             }
             SetupStep(number: 2, title: "Connect Mac and phone privately", detail: "Complete step 1 first. Keep the suggested private port unless your setup needs a different one.") {
                 PrivateSetupHelp()

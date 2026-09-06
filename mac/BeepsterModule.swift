@@ -13,6 +13,10 @@ final class BeepsterModule: NSObject, ObservableObject {
     @Published var agentState: AgentSetupState?
     @Published var agentRequirements: [ConnectorRequirement] = []
     @Published var agentBusy = false
+    @Published var agentRefreshing = false
+    private var agentRevision = 0
+    private var checking = false
+    private var actionRevision = 0
     @Published var agentMessage = "Check connections to discover your agent sessions and Telegram chats."
     var agentPages = 1
     private var checkedManagedGateway = false
@@ -30,19 +34,22 @@ final class BeepsterModule: NSObject, ObservableObject {
         agentCommand(["action":"status"])
     }
     func agentCommand(_ input: [String: Any]) {
-        guard !agentBusy else { return }
+        let isRefresh = input["action"] as? String == "status"
+        guard !agentBusy, !isRefresh || !agentRefreshing else { return }
         guard let node = currentNodeResource(), let script = bundledResource("gateway/src/agent-setup.js") else {
             agentMessage = "Agent setup resources are missing. Update the unified Connector."
             return
         }
         var payload = input; payload["pages"] = agentPages
         guard let data = try? JSONSerialization.data(withJSONObject: payload), let json = String(data:data,encoding:.utf8) else { return }
-        agentBusy = true
-        agentMessage = input["action"] as? String == "install" ? "Installing and enabling the Hermes bridge…" : "Checking agent connections…"
+        if isRefresh { agentRefreshing = true } else { agentBusy = true; agentRevision += 1 }
+        let revision = agentRevision
+        if !isRefresh { agentMessage = input["action"] as? String == "install" ? "Installing and enabling the Hermes bridge…" : "Updating agent setup…" }
         DispatchQueue.global(qos: .userInitiated).async {
             let result = self.run(node.path, [script.path, "--native"], input:json, timeout:90)
             DispatchQueue.main.async {
-                self.agentBusy = false
+                if isRefresh { self.agentRefreshing = false } else { self.agentBusy = false }
+                guard revision == self.agentRevision else { return }
                 if result.0 == 0, let data = result.1.data(using:.utf8), let state = try? JSONDecoder().decode(AgentSetupState.self,from:data) {
                     if state.ok { self.agentState = state; self.updateAgentHealth(state.bridgeHealth) }
                     self.agentMessage = state.note.isEmpty ? "Connection check complete. Choose an agent session and its matching Telegram chat below." : state.note
@@ -266,6 +273,7 @@ final class BeepsterModule: NSObject, ObservableObject {
     }
 
     private func setWorking(_ working: Bool, message: String) {
+        actionRevision += 1
         busy = working
         self.message = message
         setupButton?.isEnabled = !working
@@ -617,7 +625,7 @@ final class BeepsterModule: NSObject, ObservableObject {
         (contactsAuthorization(), beeperConnectionHealth(), privateRouteHealth())
     }
 
-    private func showCheckResults(_ checks: (contacts: String, gateway: (Bool, String), route: (Bool, String))) {
+    private func showCheckResults(_ checks: (contacts: String, gateway: (Bool, String), route: (Bool, String)), finishWorking: Bool = true) {
         let contactsOK = checks.contacts == "authorized"
         requirements = [
             ConnectorRequirement("contacts", "Contact names", contactsOK, contactsOK ? "Contacts access enabled." : "Allow Contacts access to display contact names."),
@@ -627,19 +635,15 @@ final class BeepsterModule: NSObject, ObservableObject {
                   detail: contactsOK ? "enabled" : "permission needs attention")
         setStatus(gatewayStatus, ok: checks.gateway.0, name: "Beeper connection", detail: checks.gateway.1)
         setStatus(tailscaleStatus, ok: checks.route.0, name: "Private connection", detail: checks.route.1)
-        if contactsOK && checks.gateway.0 && checks.route.0 {
-            setWorking(false, message: "Messaging connection ready. Agent setup and physical-watch approval delivery require separate checks below.")
-        } else {
-            setWorking(false, message: "Setup needs attention")
-        }
+        let summary = contactsOK && checks.gateway.0 && checks.route.0 ? "Messaging connection ready. Agent setup and physical-watch approval delivery require separate checks below." : "Setup needs attention"
+        if finishWorking { setWorking(false, message: summary) }
+        else { message = summary; setupSummary?.stringValue = summary }
     }
 
     @objc private func refresh() {
-        setWorking(true, message: "Testing Contacts, Beeper, and the private connection…")
-        [contactStatus, gatewayStatus, tailscaleStatus, openClawStatus].forEach {
-            $0?.stringValue = "○  Checking…"
-            $0?.textColor = .secondaryLabelColor
-        }
+        guard !checking, !busy else { return }
+        checking = true
+        let revision = actionRevision
         DispatchQueue.global(qos: .userInitiated).async {
             if !self.checkedManagedGateway {
                 self.checkedManagedGateway = true
@@ -667,7 +671,9 @@ final class BeepsterModule: NSObject, ObservableObject {
                 }
             }
             DispatchQueue.main.async {
-                self.showCheckResults(checks)
+                self.checking = false
+                guard !self.busy, revision == self.actionRevision else { return }
+                self.showCheckResults(checks, finishWorking: false)
                 self.updateAgentHealth(bridgeHealth)
                 self.setOptionalStatus(self.openClawStatus, state: openClaw.0, detail: openClaw.1)
             }

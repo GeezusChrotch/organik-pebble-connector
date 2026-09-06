@@ -1,0 +1,18 @@
+{
+  "name": "@beepster/gateway",
+  "version": "0.1.0",
+  "description": "Private Beeper Desktop API gateway for Beepster",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "start": "node src/cli.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@openclaw/gateway-client": "^2026.8.1"
+  }
+}

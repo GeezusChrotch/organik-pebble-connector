@@ -11,6 +11,9 @@ import SwiftUI
     @Published var status = "Not checked"
     @Published var origin = ""
     @Published var busy = false
+    private var checking = false
+    private var checkPending = false
+    private var checkRevision = 0
     @Published var localReady = false
     @Published var privateReady = false
     @Published var privateCheckDetail = "Not checked"
@@ -20,7 +23,7 @@ import SwiftUI
         self.localPort=UserDefaults.standard.string(forKey:name+".localPort") ?? String(localPort)
         self.privatePort=UserDefaults.standard.string(forKey:name+".privatePort") ?? String(privatePort)
     }
-    private func invalidateEndpoint() { localReady=false;privateReady=false;origin="";status="Save and check the new service address." }
+    private func invalidateEndpoint() { checkRevision += 1; localReady=false;privateReady=false;origin="";status="Save and check the new service address." }
     var target: String { "http://\(localHost):\(localPort)" }
     func save() throws {
         localHost=localHost.trimmingCharacters(in:.whitespacesAndNewlines)
@@ -29,22 +32,36 @@ import SwiftUI
         guard let port=Int(localPort),(1024...65535).contains(port),let remote=Int(privatePort),(1024...65535).contains(remote) else {throw ConnectorError(message:"Enter port numbers between 1024 and 65535.")}
         UserDefaults.standard.set(localPort,forKey:name+".localPort");UserDefaults.standard.set(privatePort,forKey:name+".privatePort")
     }
+    func saveAndCheck() async {
+        do { try save() } catch { status = error.localizedDescription; return }
+        checkRevision += 1
+        if checking { checkPending = true; return }
+        await check()
+    }
     func check() async {
-        guard !busy else{return};busy=true;defer{busy=false}
+        guard !busy, !checking else{return};checking=true
+        defer {
+            checking=false
+            if checkPending { checkPending=false; Task { await self.check() } }
+        }
+        let revision=checkRevision
         do {
-            try save()
             guard let url=URL(string:target+healthPath) else{return}
             let response=try await jsonRequest(url)
             if name=="Tesla",response["mode"] as? String != "tesla" {throw ConnectorError(message:"This port is not a live Tesla gateway.")}
+            guard revision == checkRevision, !busy else { return }
             localReady=true
             status="Mac service reachable."
-        }catch{localReady=false;status=error.localizedDescription}
+        }catch{guard revision == checkRevision, !busy else { return };localReady=false;status=error.localizedDescription}
         let config=await Task.detached {try? PrivateConnection.configuration()}.value
+        guard revision == checkRevision, !busy else { return }
         origin=config.flatMap{PrivateConnection.origin(target:target,configuration:$0)} ?? ""
-        privateReady = await verifyPrivateRoute()
+        let ready = await verifyPrivateRoute()
+        guard revision == checkRevision, !busy else { return }
+        privateReady = ready
     }
     func privateConnection() {
-        guard !busy else{return};busy=true
+        guard !busy else{return};busy=true;checkRevision += 1
         Task {
             defer{busy=false}
             do {try save();let target=target,port=Int(privatePort)!
@@ -55,16 +72,19 @@ import SwiftUI
         }
     }
     private func verifyPrivateRoute() async -> Bool {
+        let revision = checkRevision
         guard !origin.isEmpty, let url=URL(string:origin+healthPath) else {
             privateCheckDetail = "No private route is configured for this service."
             return false
         }
         do {
             let response = try await jsonRequest(url)
+            guard revision == checkRevision else { return false }
             let ready = name != "Tesla" || response["mode"] as? String == "tesla"
             privateCheckDetail = ready ? "Private route reached the service from this Mac." : "The route returned a different service."
             return ready
         } catch {
+            guard revision == checkRevision else { return false }
             let error = error as NSError
             privateCheckDetail = "The Mac check failed (\(error.domain), \(error.code)). Try Check connection again."
             return false

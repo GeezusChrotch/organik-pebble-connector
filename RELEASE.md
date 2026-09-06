@@ -1,11 +1,24 @@
-# Connector 0.3.0 release
+# Organik Apps Pebble Connector 0.4.4
 
-Release date: September 5, 2026. Public target: `GeezusChrotch/organik-pebble-connector`, tag `v0.3.0`.
+## What’s new since 0.3.0
 
-This unified release adds numbered setup pages, a requirements overview with Fix actions, accurate Mac/private-route checks, hidden unused connectors, optional menu bar mode, configurable signed update checks, and optional Beepster OpenClaw/Hermes setup. PebClaw is removed. Tesla remains hidden by default, marked Coming soon, and requires an existing personal gateway.
+- Background refreshes keep the interface responsive: buttons and text fields remain available, current status stays visible while checking, and stale checks cannot replace newer action results.
+- Service address edits are saved only when you choose **Save and check service**. A save during an active check queues a fresh check.
+- Separate OpenClaw and Hermes linking sections show only sessions with Telegram routes. OpenClaw titles reflect sidebar names.
+- Editable Pebble-focused defaults for each connected thread, with **Restore Pebble default** and an option to clear extra instructions. Existing custom prompts are preserved.
+- Bundles Notesy 1.1.0. Watch installation remains a separate step.
 
-Expected assets: `Organik-Apps-Pebble-Connector-0.3.0.dmg`, `appcast.xml`, `SHA256SUMS`, and the exact Notesy watch package bundled in the app. Final application source revisions and hashes are recorded with the release after validation. No legacy connector is published.
+## Updating
 
-Release checks: current source and production dependencies; Swift/runtime deployment targets; required unit checks; signing; notarization and stapling; Gatekeeper; archive contents; independently verified Sparkle signature; downloaded asset checksums and live feed. Preserve the existing public update key. Never publish local Keychain credentials, operational logs, live preferences, or internal validation history.
+Use **Check for updates** in the Connector, or download the DMG and replace the app in Applications. Requires macOS 14 or newer; universal Intel/Apple silicon build, including macOS 27 beta compatibility checks. Pairing and preferences are preserved.
 
-Testing boundaries: build, emulator, and service checks do not prove a new physical-watch installation or fresh-user setup. State actual evidence in release notes without inferring tests. Watch apps update separately from the Connector.
+For thread instructions, install or update prompt support in the relevant agent section, then restart that agent when idle. Later edits apply on its next message. OpenClaw instructions apply to the exact linked session, including access outside Beeper; Hermes applies them to its linked Telegram session. Approval requirements remain unchanged.
+
+## Validation
+
+- Connector checks and all 160 gateway tests passed.
+- Final app and DMG signed, notarized, and stapled; Gatekeeper accepted the app.
+- 0.4.4 installed and launched locally; the preceding refresh fix received user confirmation.
+- No new physical-watch installation or complete fresh-user walkthrough is claimed.
+
+Download integrity is recorded in SHA256SUMS. The updater feed is signed with the existing Sparkle key.

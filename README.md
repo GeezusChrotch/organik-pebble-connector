@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector
 
-One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.3.0 requires macOS 14 or newer.
+One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.4.4 requires macOS 14 or newer.
 
 Drag the app into Applications and open it. Use the sidebar to select an app. Each connector has the same three sections: **Setup**, **Requirements**, and **Troubleshooting**. Follow the numbered Setup steps from top to bottom, then use Check connection to refresh its requirements.
 
@@ -75,4 +75,16 @@ In Settings → Appearance, enable “Run in the menu bar and hide the Dock icon
 
 Choose an app in the sidebar and follow its numbered Setup steps: prepare the source app or vault, grant required access, start the private connection, then pair your phone. Setup actions remain visible; Requirements shows current health, and Troubleshooting contains recovery actions.
 
-Developer build instructions: [BUILDING.md](BUILDING.md).
+Thread prompts: in Beepster → agent connections, each enabled saved link has Edit thread prompt. These are additional system instructions for the exact linked session, preserving the base prompt. Install OpenClaw thread prompt support or update the Hermes bridge (0.4.0), then restart that agent when idle. Later prompt edits apply on the next message; clear and save to remove them. Disabled or relinked sessions do not receive old prompts. OpenClaw-only sessions are shown with their current sidebar titles but cannot be linked to unrelated Telegram conversations.
+
+OpenClaw and Hermes have separate session pickers, Telegram chat selections, and saved links inside their own setup sections. Each session picker shows only that provider.
+
+## Changes in 0.4.4
+
+Background connection checks keep buttons, fields, and thread prompt editors available. Explicit setup and save actions still prevent duplicate submissions. Service address fields are saved only with **Save and check service**.
+
+OpenClaw and Hermes have separate linking sections, each listing only sessions with a Telegram route. OpenClaw session names follow its current sidebar titles.
+
+Each enabled linked thread starts with editable Pebble-focused instructions: concise replies, simple formatting, and clear action confirmations. Use **Edit thread prompt** to customize them, **Restore Pebble default** to reset the editor, or clear and save to disable additional instructions. Existing custom prompts are preserved.
+
+Install or update prompt support using the agent's setup controls, then restart that agent when idle. Later prompt edits apply on its next message. OpenClaw instructions follow the linked session even when opened outside Beeper; Hermes applies them to the linked Telegram session. Other sessions and normal approval requirements remain unchanged.

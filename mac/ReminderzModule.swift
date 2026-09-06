@@ -676,7 +676,6 @@ final class ReminderzModule: NSObject, NSWindowDelegate, ObservableObject {
     private func refresh() {
         guard !checking else { return }
         checking = true
-        busy = true
         let allowed = EKEventStore.authorizationStatus(for: .reminder) == .fullAccess
         let canRun = !serviceStopped && !serviceBusy && !token.isEmpty
         let token = token
@@ -687,6 +686,7 @@ final class ReminderzModule: NSObject, NSWindowDelegate, ObservableObject {
             let privateOK = privateResult.ready
             DispatchQueue.main.async {
                 self.checking = false
+                guard !self.serviceBusy, canRun == (!self.serviceStopped && !self.token.isEmpty) else { return }
                 self.requirements = [
                     ConnectorRequirement("permission", "Reminders access", allowed, allowed ? "Reminders access allowed." : "Allow Reminders access in System Settings → Privacy & Security → Reminders."),
                     ConnectorRequirement("service", "Mac service", local, local ? "Service running." : "Start the service. Stop the standalone Reminderz Connector first if it is running."),
