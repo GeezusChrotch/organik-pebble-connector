@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector
 
-One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.4.4 requires macOS 14 or newer.
+One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.5.0 requires macOS 14 or newer.
 
 Drag the app into Applications and open it. Use the sidebar to select an app. Each connector has the same three sections: **Setup**, **Requirements**, and **Troubleshooting**. Follow the numbered Setup steps from top to bottom, then use Check connection to refresh its requirements.
 
@@ -88,3 +88,9 @@ OpenClaw and Hermes have separate linking sections, each listing only sessions w
 Each enabled linked thread starts with editable Pebble-focused instructions: concise replies, simple formatting, and clear action confirmations. Use **Edit thread prompt** to customize them, **Restore Pebble default** to reset the editor, or clear and save to disable additional instructions. Existing custom prompts are preserved.
 
 Install or update prompt support using the agent's setup controls, then restart that agent when idle. Later prompt edits apply on its next message. OpenClaw instructions follow the linked session even when opened outside Beeper; Hermes applies them to the linked Telegram session. Other sessions and normal approval requirements remain unchanged.
+
+## Changes in 0.5.0
+
+Includes the Notesy 1.2.0 gateway and watch package. Notesy can sort by name, modified date, created date, or tag; browse scoped tags; page in both directions; and use Return to top. Update the Connector before installing Notesy 1.2.0 on the watch, since its new sorting requests require the matching gateway. Older Notesy clients remain supported.
+
+Updated Reminderz watch paging works with the existing unified service; no new pairing is needed. Watch apps install separately from Connector updates.
