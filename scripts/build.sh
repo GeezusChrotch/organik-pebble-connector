@@ -47,6 +47,9 @@ rsync -a --exclude='node_modules/' --exclude='.DS_Store' --exclude='__pycache__/
 # Resolve production dependencies from the final gateway lockfile in the staging area.
 (cd "$resources/Beepster/gateway" && npm ci --omit=dev --ignore-scripts --no-audit --no-fund --cache "$work_dir/npm-cache")
 cp "$stone_dir"/gateway/*.js "$resources/Notesy/"
+for module in "$stone_dir"/gateway/*.cjs; do
+  if [ -f "$module" ]; then cp "$module" "$resources/Notesy/"; fi
+done
 npm ci --prefix "$stone_dir/renderer" --cache "$work_dir/npm-cache" --ignore-scripts --no-audit --no-fund
 node "$stone_dir/renderer/build.mjs"
 cp -R "$stone_dir/renderer/dist" "$resources/Notesy/renderer"

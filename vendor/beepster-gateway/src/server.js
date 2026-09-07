@@ -258,7 +258,8 @@ export function createServer({ beeperClient, openClawClient = null, hermesClient
       if (messagesMatch && request.method === 'GET') {
         const chatID = decodeURIComponent(messagesMatch[1]);
         const cursor = url.searchParams.get('cursor') || '';
-        const result = await withCache(`messages:${chatID}:${cursor}`, () => beeperClient.listMessages(chatID, boundedLimit(url.searchParams.get('limit')), cursor));
+        const hideLinks = url.searchParams.get('hideLinks') === '1';
+        const result = await withCache(`messages:${chatID}:${cursor}:links=${hideLinks}`, () => beeperClient.listMessages(chatID, boundedLimit(url.searchParams.get('limit')), cursor, hideLinks));
         const page = Array.isArray(result.value) ? { items: result.value } : result.value;
         sendJSON(response, 200, { ...page, ...(result.stale ? { stale: true } : {}) });
         return;
@@ -357,7 +358,7 @@ export function createServer({ beeperClient, openClawClient = null, hermesClient
 
       const attachmentMatch = url.pathname.match(/^\/v1\/attachments\/([a-f0-9]{24})\/preview$/);
       if (attachmentMatch && request.method === 'GET') {
-        const preview = await beeperClient.getAttachmentPreview(attachmentMatch[1]);
+        const preview = await beeperClient.getAttachmentPreview(attachmentMatch[1], url.searchParams.get('imageMode'));
         if (!preview) {
           sendJSON(response, 404, { error: 'Attachment is no longer available; reload the chat' });
           return;

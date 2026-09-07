@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector
 
-One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.7.0 requires macOS 14 or newer.
+One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.8.0 requires macOS 14 or newer.
 
 Drag the app into Applications and open it. Use the sidebar to select an app. Each connector has the same three sections: **Setup**, **Requirements**, and **Troubleshooting**. Follow the numbered Setup steps from top to bottom, then use Check connection to refresh its requirements.
 
@@ -104,3 +104,12 @@ Bare web URLs may request a public page title; named links use their label. See 
 Beepster’s phone settings include Double Back and Main Top. Fresh defaults in both views are top hold Quick reply, middle hold Dictate, bottom hold Delete, and Double Back Main Top; chat middle press defaults to No action. Existing custom bindings are preserved. Button scrolling is fixed at one line; the old distance setting is removed. After updating the Connector, use **Beepster → Set up service** to refresh an existing separately managed Beepster service, then reopen Beepster’s phone settings.
 
 Watch apps are installed separately. This release does not change Tesla’s hidden-by-default Coming soon status or reintroduce PebClaw.
+
+
+## Changes in 0.8.0
+
+Includes Notesy 1.4.6 with local PDF page previews, browsable PDF attachments, embedded PDFs and specific-page links. Pages render on demand, with page labels and navigation in both directions. Rotated pages are supported; unreadable PDFs show an explanation. PDF attachments remain read-only.
+
+Notesy and Beepster offer Natural, High contrast and Original image appearance in phone settings. Conversion runs locally on the Mac and preserves original attachments. Beepster also displays descriptive link labels or bare-link hostnames, with an optional Hide links setting; it does not fetch linked pages to create these labels.
+
+Update to Connector 0.8.0 before installing the matching watch updates. For an existing Beepster service, choose **Beepster → Set up service** after updating, then reopen phone settings. Watch installation is separate. Existing pairing, vault selection, thread prompts and private routes are retained.

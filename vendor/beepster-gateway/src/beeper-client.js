@@ -6,7 +6,8 @@ import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createWatchPreview } from './image-preview.js';
-import { htmlToText } from './html-to-text.js';
+import imageProcessing from './pebble-image.cjs';
+import { htmlToText, messageDisplayText } from './html-to-text.js';
 import { MacContactsResolver, normalizeContactIdentifier } from './contact-resolver.js';
 
 const MAX_MESSAGE_PAGE = 60;
@@ -449,7 +450,7 @@ export class BeeperClient {
     }
   }
 
-  async listMessages(chatID, limit, cursor = '') {
+  async listMessages(chatID, limit, cursor = '', hideLinks = false) {
     // The current Desktop API returns newest-first pages and advances toward older history with
     // `after`; cursors remain opaque and are never inspected here.
     const cursorQuery = cursor ? `&cursor=${encodeURIComponent(cursor)}&direction=after` : '';
@@ -458,7 +459,7 @@ export class BeeperClient {
     const items = (result.items || []).slice(0, MAX_MESSAGE_PAGE).reverse().map((message) => {
       const attachment = (message.attachments || []).map((item, index) =>
         this.rememberAttachment(message.id, item, index)).find(Boolean) || null;
-      const text = htmlToText(message.text || '');
+      const text = messageDisplayText(message.text || '', hideLinks);
       const watch = tokenizeEmojiForWatch(text);
       return {
         id: message.id,
@@ -475,29 +476,31 @@ export class BeeperClient {
     return { items, hasMore: Boolean(result.hasMore), nextCursor: result.oldestCursor || null };
   }
 
-  async getAttachmentPreview(attachmentID) {
+  async getAttachmentPreview(attachmentID, imageMode) {
+    const mode = imageProcessing.normalizeImageMode(imageMode);
+    const cacheKey = `${attachmentID}:${mode}`;
     const attachment = this.attachments.get(attachmentID);
     if (!attachment) return null;
-    const cached = this.previewCache.get(attachmentID);
+    const cached = this.previewCache.get(cacheKey);
     if (cached) {
-      this.previewCache.delete(attachmentID);
-      this.previewCache.set(attachmentID, cached);
+      this.previewCache.delete(cacheKey);
+      this.previewCache.set(cacheKey, cached);
       return cached;
     }
-    if (this.previewPromises.has(attachmentID)) return this.previewPromises.get(attachmentID);
-    const promise = this.createAttachmentPreview(attachment);
-    this.previewPromises.set(attachmentID, promise);
+    if (this.previewPromises.has(cacheKey)) return this.previewPromises.get(cacheKey);
+    const promise = this.createAttachmentPreview(attachment, mode);
+    this.previewPromises.set(cacheKey, promise);
     try {
       const preview = await promise;
-      this.previewCache.set(attachmentID, preview);
+      this.previewCache.set(cacheKey, preview);
       if (this.previewCache.size > MAX_PREVIEW_CACHE) this.previewCache.delete(this.previewCache.keys().next().value);
       return preview;
     } finally {
-      this.previewPromises.delete(attachmentID);
+      this.previewPromises.delete(cacheKey);
     }
   }
 
-  async createAttachmentPreview(attachment) {
+  async createAttachmentPreview(attachment, mode = 'natural') {
     const directory = await mkdtemp(join(tmpdir(), 'beepster-preview-'));
     const inputPath = join(directory, 'source');
     const outputPath = join(directory, 'preview.bmp');
@@ -513,14 +516,14 @@ export class BeeperClient {
           }
           throw error;
         }
-        const preview = await this.previewCreator(fileURLToPath(attachment.sourceURL), outputPath);
+        const preview = await this.previewCreator(fileURLToPath(attachment.sourceURL), outputPath, undefined, { mode });
         return { ...preview, kind: attachment.kind };
       }
       const response = await this.response(`/v1/assets/serve?url=${encodeURIComponent(attachment.sourceURL)}`, {
         headers: { Accept: '*/*' }
       });
       await writeFile(inputPath, Buffer.from(await response.arrayBuffer()));
-      const preview = await this.previewCreator(inputPath, outputPath);
+      const preview = await this.previewCreator(inputPath, outputPath, undefined, { mode });
       return { ...preview, kind: attachment.kind };
     } finally {
       await rm(directory, { recursive: true, force: true });

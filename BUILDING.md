@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector
 
-A native macOS 14+ connector for Notesy, Beepster, Reminderz, and Pome. Version **0.7.0** introduces a shared setup experience, a requirements-only overview, connector visibility, and Sparkle updates.
+A native macOS 14+ connector for Notesy, Beepster, Reminderz, and Pome. Version **0.8.0** adds local PDF previews and image appearance controls to the shared setup and status experience.
 
 There is one build. Tesla is included but hidden by default, with **Coming soon** on its visibility option. It manages an existing personal gateway only. PebClaw is removed. Existing connector credentials, Notesy vault bookmarks, service endpoints, and watch protocols are preserved.
 
@@ -88,6 +88,6 @@ In Settings → Appearance, enable “Run in the menu bar and hide the Dock icon
 Choose an app in the sidebar and follow its numbered Setup steps: prepare the source app or vault, grant required access, start the private connection, then pair your phone. Setup actions remain visible; Requirements shows current health, and Troubleshooting contains recovery actions.
 
 
-For this release, set `BEEPSTER_GATEWAY_SOURCE="$PWD/vendor/beepster-gateway"` to use the exact bundled gateway source, and use the Notesy 1.4.4 source at commit `15f8010075460e606a51adb6c9350abaae26459f`. Production dependencies are installed from the included lockfile.
+For this release, set `BEEPSTER_GATEWAY_SOURCE="$PWD/vendor/beepster-gateway"` to use the exact bundled gateway source, and use the Notesy 1.4.6 source at commit `31ac94a43a9380754a91dc9f115d5dc09f88e5ed`. Production dependencies are installed from the included lockfile.
 
-The Beepster settings module is frozen from Beepster commit `93389970511968693376d846afbf8cd60bd7d926`; other gateway runtime files use the previously released vendor snapshot.
+The six updated Beepster runtime modules are frozen from Beepster 0.18.0 commit `2c6657d75b27088c2711be993cc450458fe2c683`; hashes are in `vendor/beepster-gateway/CONNECTOR-INPUT-SHA256.json`. Other gateway runtime files retain the prior public vendor snapshot. Notesy release documentation later changed in `194611e868ee13ffc613b48b3ea51a12f4f0cfdd`; the bundled runtime remains the immutable commit above.

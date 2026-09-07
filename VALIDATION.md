@@ -1,9 +1,7 @@
 # Release validation
 
-Connector 0.7.0 build 15 uses immutable Notesy 1.4.4 source `15f8010075460e606a51adb6c9350abaae26459f` and its matching PBW. Gateway bytes match the earlier tested 1.4.3 gateway. Beepster configuration-page.js comes from `93389970511968693376d846afbf8cd60bd7d926`, SHA256 `efb5c3aa84c2d149cae4ec055120ff70bad9460c71fdfed58a9e16bae2f65e54`; other runtime files are unchanged from the public vendor snapshot.
+Connector 0.8.0 build 19 uses immutable Notesy 1.4.6 runtime source `31ac94a43a9380754a91dc9f115d5dc09f88e5ed` and PBW SHA256 `f16357d690ca1c6bad33d98d5a9d482d5ef4438e7dcfedf8c2858ed9fa16f225`. The native PDF helper is rebuilt for Intel and Apple silicon. The shared image quantizer is included as a CJS module in both gateway runtimes.
 
-Connector checks passed. All 84 Notesy tests passed with the bundled native image helper. Basalt/Emery builds passed in the Notesy owning task. Generated Beepster settings scripts parse and include Main Top, 14 bindings and custom selection retention, with no scroll-distance field.
+Connector checks and all 91 Notesy tests passed with the bundled helper. Three PDF tests passed directly against packaged modules, covering 17-page navigation, specific-page embeds, rotated pages, all image modes, read-only guards and malformed/hidden PDFs. The Beepster owner reports 197 tests and release checks passed. Beepster source is frozen at `2c6657d75b27088c2711be993cc450458fe2c683`. All six changed Beepster runtime modules match the frozen input hashes in `vendor/beepster-gateway/CONNECTOR-INPUT-SHA256.json`; other runtime files retain the prior public vendor snapshot.
 
-The universal release DMG is Developer ID signed, notarized and stapled. Apple accepted submission `2f87eaba-83de-4bd5-8031-f42b19acb297`. SHA256SUMS accompanies the release; the Sparkle signature and downloaded assets are checked during publication.
-
-Prior Connector/Notesy test builds were installed and exercised, with pairing/state/routes preserved. The uniquely versioned 0.7.0 release is distinct from the locally installed 0.6.1 build 14 test candidate. No fresh local or physical-watch installation is claimed for this publication.
+Earlier local test builds were installed and verified with settings preserved. Public 0.8.0 does not replace the local 0.7.3 build 18 test app. Physical-watch acceptance is a separate gate. Signing, notarization, stapling, downloaded checksums and Sparkle signatures are verified during publication.

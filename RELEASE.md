@@ -1,25 +1,24 @@
-# Organik Apps Pebble Connector 0.7.0
+# Organik Apps Pebble Connector 0.8.0
 
-## What’s new since 0.5.0
+## What’s new since 0.7.0
 
-- Bundles Notesy 1.4.4 with the matching note-link, document-reader and formatting gateway. Inline HTML is treated as text and supported styles; line breaks no longer collide with style markers or cause accidental strikethrough.
-- Faster paging of link-heavy notes, with bounded parsing caches and fewer index writes.
-- Web-page titles for bare public URLs, with bounded requests and hostname fallback. Named links use their labels without a request. The privacy guide is included inside the app and installer.
-- Updated Beepster 0.17.0 phone controls: Double Back/Main Top, revised hold defaults, chat middle press No action, and fixed one-line button scrolling. Existing custom assignments are preserved.
-- Retains responsive background refreshes, editable Pebble thread prompts, menu bar mode and signed update checks.
+- Notesy 1.4.6 adds PDF previews: browse PDF attachments, open embedded PDFs and specific-page links, and move through labeled pages in either direction. Pages render as needed, including rotated pages. PDF attachments remain read-only; unreadable files show a clear fallback.
+- Natural, High contrast and Original image appearance for Notesy photos/drawings/PDFs and Beepster photos. Conversion is local and preserves original attachments. Beepster handles macOS bitmap output with and without transparency.
+- Beepster displays descriptive link labels or bare-link hostnames, with an optional Hide links setting. Link formatting does not fetch websites or change sent messages.
+- Retains responsive background checks, separate agent linking, editable Pebble thread prompts, menu bar mode and signed update checks.
 
 ## Update instructions
 
-Update the Connector before installing Notesy 1.4.4; its formatting requires this gateway generation. Watch apps install separately. For an existing managed Beepster service, choose **Beepster → Set up service** after updating, then reopen the phone settings to load the new controls. Existing pairing, vault selection and private routes are retained.
+Install Connector **0.8.0 first**, then the matching Notesy 1.4.6 and Beepster 0.18.0 watch updates. For an existing Beepster service, choose **Beepster → Set up service** after updating and reopen phone settings. Watch apps install separately. Existing pairing, vault selection, thread prompts and private routes are retained.
 
-Requires macOS 14 or later; universal Intel/Apple silicon build with macOS 27 beta compatibility checks. One build; Tesla remains hidden by default and marked Coming soon. PebClaw is excluded.
+Requires macOS 14 or later; universal Intel/Apple silicon build with macOS 27 beta compatibility checks. Tesla stays hidden by default with Coming soon. PebClaw is excluded.
 
 ## Privacy
 
-For an unlabeled public web URL, Notesy may request the page to obtain its title. The website receives the URL request and Mac’s public IP. No cookies, credentials, note body, referrer or scripts are sent/run. Private addresses are excluded; redirects are checked, with a 2.5-second/128 KiB limit. Details are in PRIVACY.md.
+Images and PDF pages are converted locally; source attachments are preserved. Beepster link labels do not make website requests. Notesy’s existing bare-URL page-title requests remain subject to the limits in the included privacy guide.
 
 ## Validation
 
-Connector compilation, platform, packaging and privacy checks pass. All 84 Notesy tests passed with the bundled image helper. Immutable source and watch-package inputs were verified. Signed/notarized artifacts and the Sparkle feed are verified before publication, followed by downloaded-asset checksum verification.
+The release rebuilds the native PDF helper and verifies the frozen runtime and watch-package inputs. Notesy’s 91 tests and packaged PDF checks cover multi-page navigation, embeds, rotated pages, all image modes and unreadable files. Signing, notarization, downloaded checksums and the Sparkle feed are verified during publication.
 
-Prior test builds were installed and tested; this uniquely versioned release has not replaced the local test installation. The latest watch package and new Beepster defaults are not claimed as newly hardware-tested by this Connector release.
+Prior local test builds were installed and exercised. Publication does not replace the local test installation or claim fresh physical-watch acceptance.

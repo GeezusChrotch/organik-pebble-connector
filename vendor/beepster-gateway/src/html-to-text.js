@@ -23,6 +23,24 @@ function imageAlt(tag) {
   return match ? (match[1] ?? match[2] ?? '') : '';
 }
 
+// Display-only formatting: never use this to modify outgoing messages or match
+// delivery confirmations. Do not fetch URLs to guess titles (privacy/SSRF).
+export function messageDisplayText(value, hideLinks = false) {
+  let text = String(value || '').replace(/<a\b[^>]*>([\s\S]*?)<\/a\s*>/gi,
+    (_, label) => hideLinks ? '' : label);
+  text = htmlToText(text);
+  text = text.replace(/\[([^\]\n]*)\]\((?:https?:\/\/|www\.)[^\s)]*(?:\s+"[^"]*")?\)/gi,
+    (_, label) => hideLinks ? '' : label);
+  text = text.replace(/\b(?:https?:\/\/|www\.)[^\s<>]+/gi, raw => {
+    const trailing = raw.match(/[.,!?;:)\]}]+$/)?.[0] || '';
+    const url = trailing ? raw.slice(0, -trailing.length) : raw;
+    if (hideLinks) return trailing;
+    try { return new URL(/^www\./i.test(url) ? `https://${url}` : url).hostname.replace(/^www\./i, '') + trailing; }
+    catch { return '[link]' + trailing; }
+  });
+  return text.replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 export function htmlToText(value) {
   let text = String(value || '').replace(/\r\n?/g, '\n');
   if (!/<\/?[a-z][^>]*>|&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]+);/i.test(text)) return text;

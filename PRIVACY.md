@@ -28,3 +28,10 @@ limit; redirects are rechecked. Up to 256 titles remain in memory for one day
 (failures for 15 minutes). If a title cannot be obtained, Notesy shows the hostname.
 The Markdown file is not changed. This page-metadata request is separate from the
 local image renderer, which still does not fetch Internet images.
+
+
+## Image appearance and PDF previews
+
+Natural, High contrast and Original change only the watch preview. Notesy reads images, drawings and PDFs from the selected local vault and renders requested PDF pages locally with macOS. Source files are not edited or uploaded to a conversion service. Temporary rendering files are removed after conversion; a bounded in-memory preview cache avoids repeated work. Beepster retrieves requested attachments through the existing Beeper connection and converts previews locally. Image appearance is included in preview requests and cache selection.
+
+Beepster link labels and Hide links are display preferences. Descriptive labels or bare-link hostnames are derived from message text without fetching the linked website. They do not alter sent messages. Notesy web-page title requests described above remain a separate feature.
