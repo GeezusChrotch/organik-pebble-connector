@@ -1,24 +1,17 @@
-# Organik Apps Pebble Connector 0.8.0
+# Organik Apps Pebble Connector 0.8.1
 
-## What’s new since 0.7.0
+## What’s new
 
-- Notesy 1.4.6 adds PDF previews: browse PDF attachments, open embedded PDFs and specific-page links, and move through labeled pages in either direction. Pages render as needed, including rotated pages. PDF attachments remain read-only; unreadable files show a clear fallback.
-- Natural, High contrast and Original image appearance for Notesy photos/drawings/PDFs and Beepster photos. Conversion is local and preserves original attachments. Beepster handles macOS bitmap output with and without transparency.
-- Beepster displays descriptive link labels or bare-link hostnames, with an optional Hide links setting. Link formatting does not fetch websites or change sent messages.
-- Retains responsive background checks, separate agent linking, editable Pebble thread prompts, menu bar mode and signed update checks.
+Bundles Notesy 1.4.7 and its matching task-text gateway. Long task text continues across blocks and pages without truncating UTF-8 characters, while retaining one checkbox and the original task marker. The matching watch app sizes task rows for the selected font and refreshes the layout after theme changes.
 
 ## Update instructions
 
-Install Connector **0.8.0 first**, then the matching Notesy 1.4.6 and Beepster 0.18.0 watch updates. For an existing Beepster service, choose **Beepster → Set up service** after updating and reopen phone settings. Watch apps install separately. Existing pairing, vault selection, thread prompts and private routes are retained.
+Install **Connector 0.8.1 before Notesy 1.4.7**. Watch installation is separate. Existing pairing, vault selection, thread prompts and private routes are preserved. Beepster and its managed service are unchanged from Connector 0.8.0.
 
-Requires macOS 14 or later; universal Intel/Apple silicon build with macOS 27 beta compatibility checks. Tesla stays hidden by default with Coming soon. PebClaw is excluded.
+If upgrading from before 0.8.0, its PDF previews and image appearance controls are included. Existing Beepster users upgrading from those earlier versions should choose **Beepster → Set up service**, then reopen phone settings.
 
-## Privacy
-
-Images and PDF pages are converted locally; source attachments are preserved. Beepster link labels do not make website requests. Notesy’s existing bare-URL page-title requests remain subject to the limits in the included privacy guide.
+Requires macOS 14 or later; universal Intel/Apple silicon build with macOS 27 beta compatibility checks. Tesla remains hidden by default and marked Coming soon. PebClaw is excluded.
 
 ## Validation
 
-The release rebuilds the native PDF helper and verifies the frozen runtime and watch-package inputs. Notesy’s 91 tests and packaged PDF checks cover multi-page navigation, embeds, rotated pages, all image modes and unreadable files. Signing, notarization, downloaded checksums and the Sparkle feed are verified during publication.
-
-Prior local test builds were installed and exercised. Publication does not replace the local test installation or claim fresh physical-watch acceptance.
+All 93 Notesy tests and two packaged task-text checks passed, covering long UTF-8 text, paging, a single checkbox, exact marker edits and font-based row heights. The local matching build was installed and accepted by the user. Publication does not reinstall the app or watch package. Signed/notarized assets, download checksums and the Sparkle feed are verified during publication.

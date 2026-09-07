@@ -1,7 +1,7 @@
 # Release validation
 
-Connector 0.8.0 build 19 uses immutable Notesy 1.4.6 runtime source `31ac94a43a9380754a91dc9f115d5dc09f88e5ed` and PBW SHA256 `f16357d690ca1c6bad33d98d5a9d482d5ef4438e7dcfedf8c2858ed9fa16f225`. The native PDF helper is rebuilt for Intel and Apple silicon. The shared image quantizer is included as a CJS module in both gateway runtimes.
+Connector 0.8.1 build 20 uses immutable Notesy 1.4.7 source `6820b8c802303d188ea914f5176d27c30f5f5490` and PBW SHA256 `4de0c32cc86e851fc75bb9c390d3d941976c61ae92162192430e20257b13db03`. Beepster runtime is unchanged from public 0.8.0; its manifest is retained in the vendor source.
 
-Connector checks and all 91 Notesy tests passed with the bundled helper. Three PDF tests passed directly against packaged modules, covering 17-page navigation, specific-page embeds, rotated pages, all image modes, read-only guards and malformed/hidden PDFs. The Beepster owner reports 197 tests and release checks passed. Beepster source is frozen at `2c6657d75b27088c2711be993cc450458fe2c683`. All six changed Beepster runtime modules match the frozen input hashes in `vendor/beepster-gateway/CONNECTOR-INPUT-SHA256.json`; other runtime files retain the prior public vendor snapshot.
+All 93 Notesy tests passed with the bundled native helper. Two packaged task-text checks passed for long UTF-8 content, continuation paging with one checkbox, exact task-marker edits and font-based row sizing. Installed runtime and watch package were verified and the user accepted the fix. This release packages the matching signed universal app without another local or watch installation.
 
-Earlier local test builds were installed and verified with settings preserved. Public 0.8.0 does not replace the local 0.7.3 build 18 test app. Physical-watch acceptance is a separate gate. Signing, notarization, stapling, downloaded checksums and Sparkle signatures are verified during publication.
+Signing, notarization, stapling, downloaded checksums and Sparkle signature verification are completed during publication. Public release assets include SHA256SUMS. Requires macOS 14 or later, including macOS 27 compatibility validation.

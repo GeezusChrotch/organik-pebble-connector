@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector
 
-One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.8.0 requires macOS 14 or newer.
+One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.8.1 requires macOS 14 or newer.
 
 Drag the app into Applications and open it. Use the sidebar to select an app. Each connector has the same three sections: **Setup**, **Requirements**, and **Troubleshooting**. Follow the numbered Setup steps from top to bottom, then use Check connection to refresh its requirements.
 
@@ -113,3 +113,8 @@ Includes Notesy 1.4.6 with local PDF page previews, browsable PDF attachments, e
 Notesy and Beepster offer Natural, High contrast and Original image appearance in phone settings. Conversion runs locally on the Mac and preserves original attachments. Beepster also displays descriptive link labels or bare-link hostnames, with an optional Hide links setting; it does not fetch linked pages to create these labels.
 
 Update to Connector 0.8.0 before installing the matching watch updates. For an existing Beepster service, choose **Beepster → Set up service** after updating, then reopen phone settings. Watch installation is separate. Existing pairing, vault selection, thread prompts and private routes are retained.
+
+
+## Changes in 0.8.1
+
+Includes Notesy 1.4.7 with complete long task text. Long tasks continue across reader blocks and pages while retaining one checkbox; checking a task changes only its original marker. The matching watch app measures task rows using the selected font and available width, and refreshes the layout after a theme change. Update Connector before installing Notesy 1.4.7. Existing settings and attachments are preserved; Beepster is unchanged.
