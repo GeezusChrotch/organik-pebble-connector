@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector
 
-One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.5.0 requires macOS 14 or newer.
+One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.7.0 requires macOS 14 or newer.
 
 Drag the app into Applications and open it. Use the sidebar to select an app. Each connector has the same three sections: **Setup**, **Requirements**, and **Troubleshooting**. Follow the numbered Setup steps from top to bottom, then use Check connection to refresh its requirements.
 
@@ -94,3 +94,13 @@ Install or update prompt support using the agent's setup controls, then restart 
 Includes the Notesy 1.2.0 gateway and watch package. Notesy can sort by name, modified date, created date, or tag; browse scoped tags; page in both directions; and use Return to top. Update the Connector before installing Notesy 1.2.0 on the watch, since its new sorting requests require the matching gateway. Older Notesy clients remain supported.
 
 Updated Reminderz watch paging works with the existing unified service; no new pairing is needed. Watch apps install separately from Connector updates.
+
+## Changes in 0.7.0
+
+Includes Notesy 1.4.4 and the matching gateway for note links, a scrolling document reader, inline Markdown/HTML formatting, preserved line breaks, and corrected strikethrough. Unsupported HTML/CSS falls back to the watch theme. New style combinations require both this Connector and the matching Notesy watch app. Install the Connector first.
+
+Bare web URLs may request a public page title; named links use their label. See [Privacy](PRIVACY.md) for the request limits and data involved.
+
+Beepster’s phone settings include Double Back and Main Top. Fresh defaults in both views are top hold Quick reply, middle hold Dictate, bottom hold Delete, and Double Back Main Top; chat middle press defaults to No action. Existing custom bindings are preserved. Button scrolling is fixed at one line; the old distance setting is removed. After updating the Connector, use **Beepster → Set up service** to refresh an existing separately managed Beepster service, then reopen Beepster’s phone settings.
+
+Watch apps are installed separately. This release does not change Tesla’s hidden-by-default Coming soon status or reintroduce PebClaw.

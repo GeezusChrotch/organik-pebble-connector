@@ -38,6 +38,7 @@ ditto "$sparkle/Sparkle.framework" "$contents/Frameworks/Sparkle.framework"
 cp "$sparkle/LICENSE" "$resources/Sparkle-LICENSE.txt"
 cp "$project_dir/ACKNOWLEDGMENTS.md" "$resources/ACKNOWLEDGMENTS.md"
 cp "$project_dir/LICENSE" "$resources/LICENSE.txt"
+cp "$project_dir/PRIVACY.md" "$resources/PRIVACY.md"
 cp -R "$beepster_resources" "$resources/Beepster"
 # Ship the maintained gateway and agent plugins, not a stale standalone app copy.
 rm -rf "$resources/Beepster/gateway"

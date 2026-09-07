@@ -15,3 +15,16 @@ Update checks contact the configured GitHub release feed through Sparkle. GitHub
 The connector does not include analytics or advertising. A local ConnectionStatus.json file records requirement states and route-check error codes for troubleshooting. It contains no credentials, note content, private addresses, or vault paths, and is not uploaded. To share a problem report, remove tokens, pairing codes, private addresses, and personal content before posting it.
 
 Optional thread system instructions are stored locally in Beepster/thread-prompts.json with owner-only file permissions and backups. The OpenClaw plugin and Hermes bridge read only the instructions matching the exact enabled session/chat link. The OpenClaw plugin requires conversation-hook and prompt-injection permission; the Hermes bridge adds ephemeral system context. Saving does not send a message, restart an agent, or modify its global prompt.
+
+## Notesy web-page titles
+
+When a displayed note contains a bare HTTP(S) URL without a descriptive label,
+the Connector requests that public web page directly to read its HTML title. The
+website receives the URL request and the Mac's public IP address. Notesy sends no
+note body, cookies, login credentials or referrer, and runs no page scripts. Named
+links use their existing label without a request. Private/local addresses and
+unusual ports are excluded. Requests have a 2.5-second deadline and a 128 KiB read
+limit; redirects are rechecked. Up to 256 titles remain in memory for one day
+(failures for 15 minutes). If a title cannot be obtained, Notesy shows the hostname.
+The Markdown file is not changed. This page-metadata request is separate from the
+local image renderer, which still does not fetch Internet images.
