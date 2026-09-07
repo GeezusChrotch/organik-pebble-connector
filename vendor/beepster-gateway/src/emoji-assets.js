@@ -70,7 +70,7 @@ export function tokenizeEmojiForWatch(value) {
 }
 
 export function renderEmojiAtlas(requestedKeys, requestedSize = 20, requestedColumns = 5) {
-  const size = Math.max(12, Math.min(24, Number.parseInt(requestedSize, 10) || 20));
+  const size = Math.max(12, Math.min(26, Number.parseInt(requestedSize, 10) || 20));
   const columns = Math.max(1, Math.min(8, Number.parseInt(requestedColumns, 10) || 5));
   const keys = [];
   for (const value of Array.isArray(requestedKeys) ? requestedKeys : []) {

@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector
 
-A native macOS 14+ connector for Notesy, Beepster, Reminderz, and Pome. Version **0.8.1** includes the complete long-task text fix for Notesy 1.4.7.
+A native macOS 14+ connector for Notesy, Beepster, Reminderz, and Pome. Version **0.8.2** adds the 26-pixel emoji atlas needed by Beepster 0.19.0 and retains Notesy 1.4.7.
 
 There is one build. Tesla is included but hidden by default, with **Coming soon** on its visibility option. It manages an existing personal gateway only. PebClaw is removed. Existing connector credentials, Notesy vault bookmarks, service endpoints, and watch protocols are preserved.
 
@@ -91,3 +91,5 @@ Choose an app in the sidebar and follow its numbered Setup steps: prepare the so
 For this release, set `BEEPSTER_GATEWAY_SOURCE="$PWD/vendor/beepster-gateway"` to use the exact bundled gateway source, and use the Notesy 1.4.7 source at commit `6820b8c802303d188ea914f5176d27c30f5f5490`. Production dependencies are installed from the included lockfile.
 
 The six updated Beepster runtime modules are frozen from Beepster 0.18.0 commit `2c6657d75b27088c2711be993cc450458fe2c683`; hashes are in `vendor/beepster-gateway/CONNECTOR-INPUT-SHA256.json`. Other gateway runtime files retain the prior public vendor snapshot.
+
+The 0.8.2 emoji-assets.js update is frozen from Beepster 0.19.0 source `1cbcc385199e63f1854bad428cc0bd1e424be8ed`; its hash is included in the same vendor manifest.
