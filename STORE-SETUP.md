@@ -56,7 +56,7 @@ Closing the Connector window is designed to keep captures running. Quit is desig
 
 Ordinary Beepster messaging works without either agent. Link only the exact Telegram session belonging to the selected agent; a renamed display label does not create a new session.
 
-The Store app does not install agent plugins or patch agent code. Install supported plugins through each agent's own supported installation workflow. Public plugin installation instructions and release assets must be finalized before optional-agent setup is advertised as ready.
+The Store app does not install agent plugins or patch agent code. Install supported plugins through each agent's own supported installation workflow. Use the [pinned optional-agent installation guide](agents/README.md) for the supported CLI commands, environment setup and source hashes. Clean-account installation and live prompt/approval acceptance remain release gates.
 
 - **Hermes:** the Store-compatible bridge requires plugin 0.5.1 or later and an authenticated loopback HTTP endpoint. Enter the bridge address and matching token under Hermes and save. Connector stores its token in Keychain. The agent supplies Telegram session choices, prompts and approval requests.
 - **OpenClaw:** choose its data folder, then use Pair / manage OpenClaw access when required. Review the exact device request in OpenClaw; approval access does not require expanding the device to general administrative permissions. Thread prompt support additionally requires the external prompt plugin and its Store-file transport mode. A green approval-bridge light alone does not verify prompt injection.
