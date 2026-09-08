@@ -6,6 +6,8 @@ import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createWatchPreview } from './image-preview.js';
+import { messageReactions } from './reactions.js';
+import { youtubePreview, youtubeVideoID, downloadYouTubeThumbnail } from './youtube-preview.js';
 import imageProcessing from './pebble-image.cjs';
 import { htmlToText, messageDisplayText } from './html-to-text.js';
 import { MacContactsResolver, normalizeContactIdentifier } from './contact-resolver.js';
@@ -234,12 +236,21 @@ export class BeeperClient {
   rememberAttachment(messageID, attachment, index) {
     const sourceURL = attachment.type === 'video' ? (attachment.posterImg || attachment.srcURL) : (attachment.srcURL || attachment.posterImg);
     if (!sourceURL || !/^(file|mxc|localmxc):\/\//.test(sourceURL)) return null;
-    const kind = attachment.isGif || attachment.mimeType === 'image/gif' ? 'gif' :
+    const kind = attachment.isGif || attachment.mimeType === 'image/gif' || /\.gif$/i.test(attachment.fileName || '') || /\.gif(?:$|[?#])/i.test(sourceURL) ? 'gif' :
       (attachment.type === 'video' ? 'video' : 'image');
     const id = createHash('sha256').update(`${messageID}:${attachment.id || index}:${sourceURL}`).digest('hex').slice(0, 24);
     this.attachments.set(id, { sourceURL, kind });
     if (this.attachments.size > 300) this.attachments.delete(this.attachments.keys().next().value);
     return { id, kind };
+  }
+
+  rememberYouTube(message) {
+    const preview = youtubePreview(message);
+    if (!preview) return null;
+    const id = createHash('sha256').update(`${message.id}:youtube:${preview.sourceURL}`).digest('hex').slice(0, 24);
+    this.attachments.set(id, {...preview, kind: 'video'});
+    if (this.attachments.size > 300) this.attachments.delete(this.attachments.keys().next().value);
+    return {id, kind: 'video', title: htmlToText(preview.title)};
   }
 
   mergeAccountContacts(accountID, additions) {
@@ -404,12 +415,15 @@ export class BeeperClient {
 
   async hydrateChatContext(chatID, messages) {
     let context = this.chatContexts.get(chatID);
-    if (!context || context.type !== 'group') return;
+    const hasReactions = (messages || []).some(message => message.reactions?.length);
+    if ((!context || context.type !== 'group') && !hasReactions) return;
+    context ||= {type: '', participants: [], accountID: '', name: ''};
     if (!context.hydrated || context.participantsHasMore) {
       try {
         const detail = await this.request(`/v1/chats/${encodeURIComponent(chatID)}?maxParticipantCount=500`);
         context = {
           ...context,
+          type: detail.type || context.type,
           accountID: detail.accountID || context.accountID,
           name: normalizeEmojiForPebble(resolveChatName(detail) || context.name),
           participants: detail?.participants?.items || context.participants,
@@ -424,7 +438,9 @@ export class BeeperClient {
 
     const relevantParticipants = [];
     const queries = [];
-    for (const message of messages || []) {
+    const senders = (messages || []).concat((messages || []).flatMap(message =>
+      (message.reactions || []).map(reaction => ({senderID: reaction.participantID}))));
+    for (const message of senders) {
       if (message.isSender || readableDisplayName(message.senderName)) continue;
       const participant = context.participants.find((item) =>
         !item.isSelf && message.senderID && item.id === message.senderID);
@@ -456,10 +472,14 @@ export class BeeperClient {
     const cursorQuery = cursor ? `&cursor=${encodeURIComponent(cursor)}&direction=after` : '';
     const result = await this.request(`/v1/chats/${encodeURIComponent(chatID)}/messages?limit=${limit}${cursorQuery}`);
     await this.hydrateChatContext(chatID, result.items || []);
-    const items = (result.items || []).slice(0, MAX_MESSAGE_PAGE).reverse().map((message) => {
+    // Bridges expose tapback notices as hidden linked messages; the parent
+    // already carries the authoritative reactions array. Never render the notice.
+    const items = (result.items || []).slice(0, MAX_MESSAGE_PAGE).filter(message => message.isHidden !== true).reverse().map((message) => {
       const attachment = (message.attachments || []).map((item, index) =>
-        this.rememberAttachment(message.id, item, index)).find(Boolean) || null;
-      const text = messageDisplayText(message.text || '', hideLinks);
+        this.rememberAttachment(message.id, item, index)).find(Boolean) || (!hideLinks ? this.rememberYouTube(message) : null);
+      let text = messageDisplayText(message.text || '', hideLinks);
+      if (attachment?.title) text = text.replace(/https?:\/\/[^\s<>"']+/g, url => youtubeVideoID(url) ? attachment.title : url);
+      if (attachment?.title && !text.includes(attachment.title)) text = [text, attachment.title].filter(Boolean).join('\n');
       const watch = tokenizeEmojiForWatch(text);
       return {
         id: message.id,
@@ -468,6 +488,13 @@ export class BeeperClient {
         text,
         watchText: watch.text,
         emojiKeys: watch.keys,
+        reactions: messageReactions(message, participantID => {
+          const participant = this.chatContexts.get(chatID)?.participants?.find(item => item.id === participantID);
+          const isSelf = participant?.isSelf === true || (result.items || []).some(item =>
+            item.isSender === true && item.senderID === participantID);
+          return {sender: normalizeEmojiForPebble(this.resolveMessageSender(chatID,
+            {senderID: participantID, isSender: isSelf})), isSelf};
+        }),
         time: normalizeTime(message.timestamp),
         timestamp: message.timestamp || '',
         attachment
@@ -488,7 +515,12 @@ export class BeeperClient {
       return cached;
     }
     if (this.previewPromises.has(cacheKey)) return this.previewPromises.get(cacheKey);
-    const promise = this.createAttachmentPreview(attachment, mode);
+    const promise = this.createAttachmentPreview(attachment, mode).catch(error => {
+      // Beeper link cards can retain an image URL after their local cache expires.
+      // Retry only the same recognized video's constrained public thumbnail.
+      if (!attachment.thumbnailFallback) throw error;
+      return this.createAttachmentPreview({sourceURL: attachment.thumbnailFallback, publicThumbnail: true, kind: 'video'}, mode);
+    });
     this.previewPromises.set(cacheKey, promise);
     try {
       const preview = await promise;
@@ -516,14 +548,18 @@ export class BeeperClient {
           }
           throw error;
         }
-        const preview = await this.previewCreator(fileURLToPath(attachment.sourceURL), outputPath, undefined, { mode });
+        const preview = await this.previewCreator(fileURLToPath(attachment.sourceURL), outputPath, undefined, { mode, kind: attachment.kind });
         return { ...preview, kind: attachment.kind };
       }
+      if (attachment.publicThumbnail) {
+        await writeFile(inputPath, await downloadYouTubeThumbnail(attachment.sourceURL, this.fetch));
+      } else {
       const response = await this.response(`/v1/assets/serve?url=${encodeURIComponent(attachment.sourceURL)}`, {
-        headers: { Accept: '*/*' }
+        headers: { Accept: '*/*' }, signal: AbortSignal.timeout(10000)
       });
       await writeFile(inputPath, Buffer.from(await response.arrayBuffer()));
-      const preview = await this.previewCreator(inputPath, outputPath, undefined, { mode });
+      }
+      const preview = await this.previewCreator(inputPath, outputPath, undefined, { mode, kind: attachment.kind });
       return { ...preview, kind: attachment.kind };
     } finally {
       await rm(directory, { recursive: true, force: true });

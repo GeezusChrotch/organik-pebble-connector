@@ -35,3 +35,9 @@ local image renderer, which still does not fetch Internet images.
 Natural, High contrast and Original change only the watch preview. Notesy reads images, drawings and PDFs from the selected local vault and renders requested PDF pages locally with macOS. Source files are not edited or uploaded to a conversion service. Temporary rendering files are removed after conversion; a bounded in-memory preview cache avoids repeated work. Beepster retrieves requested attachments through the existing Beeper connection and converts previews locally. Image appearance is included in preview requests and cache selection.
 
 Beepster link labels and Hide links are display preferences. Descriptive labels or bare-link hostnames are derived from message text without fetching the linked website. They do not alter sent messages. Notesy web-page title requests described above remain a separate feature.
+
+## Beepster attachments and thumbnails
+
+Apple Messages attachment previews may require Full Disk Access for Beepster’s managed service. The status probe only opens and closes the local attachment directory; it does not enumerate messages or read attachment contents. Preview requests read the selected attachment and convert it locally. GIF previews use a bounded decoder.
+
+For recognized YouTube links, Beepster may request a thumbnail directly from YouTube’s image host (i.ytimg.com). That host receives the video ID and normal request information, including your IP address; Beepster does not send message bodies or Beeper credentials. Reaction names come from the configured Beeper connection.

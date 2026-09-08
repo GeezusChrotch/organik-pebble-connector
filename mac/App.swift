@@ -54,7 +54,7 @@ import ServiceManagement
     func requirements(_ page: ConnectorPage) -> [ConnectorRequirement] {
         switch page {
         case .stone: return stone.requirements
-        case .beepster: return beepster.map { $0.requirements + $0.agentRequirements } ?? unchecked([("contacts", "Contact names"), ("beeper", "Beeper connection"), ("route", "Private connection")], page: page)
+        case .beepster: return beepster.map { $0.requirements + $0.agentRequirements } ?? unchecked([("contacts", "Contact names"), ("beeper", "Beeper connection"), ("route", "Private connection"), ("attachments", "Full Disk Access for attachments")], page: page)
         case .reminderz: return reminderz?.requirements ?? unchecked([("permission", "Reminders access"), ("service", "Mac service"), ("route", "Private connection")], page: page)
         case .pome: return pome.requirements
         case .tesla: return tesla.requirements
@@ -247,7 +247,15 @@ struct BeepsterView: View {
             SetupStep(number: 4, title: "Pair Beepster on your phone", detail: "Install Beepster on your Pebble. Open Connect phone and follow the pairing instructions, then save Beepster’s settings in the Pebble phone app and refresh Beepster on your watch.") {
                 Button("Connect phone") { module.pairPhone() }.buttonStyle(.borderedProminent).disabled(module.busy || !ready("route"))
             }
-            SetupStep(number: 5, title: "Optional: Hermes and OpenClaw approvals", detail: "Agent Links connects your agent session to the Telegram conversation you choose. It includes Hermes bridge installation, connection checks, and disabling links. Approvals appear inside that chat as Approve once or Deny. For OpenClaw, pair access first.") {
+            SetupStep(number: 5, title: "Optional: Apple Messages photos and GIFs", detail: "macOS protects attachments stored by Messages. To view them, grant Full Disk Access to Beepster’s background service. Allow access opens System Settings and selects the service file in Finder; drag that node file into the Full Disk Access list and turn it on.") {
+                Text(module.mediaAccessMessage).font(.callout).foregroundStyle(.secondary)
+                HStack {
+                    Button("Allow attachment access") { module.openMediaAccessSettings() }
+                    Button("Check access") { module.checkMediaAccess() }
+                    Button("Restart and recheck") { module.checkMediaAccess(restart: true) }
+                }.disabled(module.mediaAccessBusy || module.busy)
+            }
+            SetupStep(number: 6, title: "Optional: Hermes and OpenClaw approvals", detail: "Agent Links connects your agent session to the Telegram conversation you choose. It includes Hermes bridge installation, connection checks, and disabling links. Approvals appear inside that chat as Approve once or Deny. For OpenClaw, pair access first.") {
                 AgentSetupView(module:module)
             }
             Button("Check connection") { module.checkConnection() }.disabled(module.busy)

@@ -7,13 +7,17 @@ final class BeepsterModule: NSObject, ObservableObject {
     @Published var requirements: [ConnectorRequirement] = [
         ConnectorRequirement("contacts", "Contact names", false, "Not checked"),
         ConnectorRequirement("beeper", "Beeper connection", false, "Not checked"),
-        ConnectorRequirement("route", "Private connection", false, "Not checked")]
+        ConnectorRequirement("route", "Private connection", false, "Not checked"),
+        ConnectorRequirement("attachments", "Full Disk Access for attachments", false, "Not checked")]
     @Published var busy = false
     @Published var message = "Not checked"
     @Published var agentState: AgentSetupState?
     @Published var agentRequirements: [ConnectorRequirement] = []
     @Published var agentBusy = false
     @Published var agentRefreshing = false
+    @Published var mediaAccessBusy = false
+    @Published var mediaAccessMessage = "Needed only for attachments stored by Apple Messages."
+    private var mediaAccessRequirement = ConnectorRequirement("attachments", "Full Disk Access for attachments", false, "Not checked")
     private var agentRevision = 0
     private var checking = false
     private var actionRevision = 0
@@ -29,6 +33,53 @@ final class BeepsterModule: NSObject, ObservableObject {
     func repairRoute() { startPrivateRoute() }
     func openBeeper() { openBeeperDesktop() }
     func privacySettings() { openPrivacySettings() }
+    func openMediaAccessSettings() {
+        let node = supportDirectory.appendingPathComponent("bin/node")
+        guard FileManager.default.fileExists(atPath: node.path) else {
+            mediaAccessMessage = "Choose Set up service first, then allow Messages attachment access."
+            return
+        }
+        NSWorkspace.shared.activateFileViewerSelecting([node])
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
+            NSWorkspace.shared.open(url)
+        }
+        mediaAccessMessage = "Drag the selected node file into Full Disk Access and turn it on. Then choose Restart and recheck."
+    }
+    func checkMediaAccess(restart: Bool = false) {
+        guard !mediaAccessBusy else { return }
+        mediaAccessBusy = true
+        let revision = actionRevision
+        Task { @MainActor in
+            do {
+                if restart {
+                    let result = await Task.detached { self.run("/bin/launchctl", ["kickstart", "-k", "gui/\(getuid())/org.beepster.gateway"]) }.value
+                    guard result.0 == 0 else { throw ConnectorError(message: "Could not restart Beepster. Choose Set up service and try again.") }
+                    try await Task.sleep(nanoseconds: 700_000_000)
+                }
+                let secret = await Task.detached { self.run(self.keychainHelperPath(), ["get", "gateway-token"], timeout: nil) }.value
+                guard secret.0 == 0 else { throw ConnectorError(message: "Choose Set up service before checking attachment access.") }
+                let result = try await jsonRequest(URL(string: "http://127.0.0.1:8794/v1/media/access")!, token: secret.1.trimmingCharacters(in: .whitespacesAndNewlines))
+                guard revision == self.actionRevision else { self.mediaAccessBusy = false; return }
+                self.updateMediaAccess(result)
+                self.mediaAccessBusy = false
+            } catch {
+                if revision == self.actionRevision { self.updateMediaAccess(["code": "CHECK_FAILED"]) }
+                self.mediaAccessBusy = false
+            }
+        }
+    }
+    func updateMediaAccess(_ result: [String: Any]) {
+        switch result["code"] as? String {
+        case "READY": self.mediaAccessMessage = "Messages attachment folder is accessible. Open the photo or GIF again on your watch."
+        case "MEDIA_PERMISSION": self.mediaAccessMessage = "Messages attachment access is blocked. Allow the selected Beepster service in Full Disk Access, then restart and recheck."
+        case "NO_LOCAL_ATTACHMENTS": self.mediaAccessMessage = "No local Messages attachment folder was found. No access change is needed unless you use Messages attachments."
+        case "NOT_APPLICABLE": self.mediaAccessMessage = "Messages attachment access is not required on this system."
+        default: self.mediaAccessMessage = "Attachment access could not be determined. Try checking again."
+        }
+        mediaAccessRequirement = ConnectorRequirement("attachments", "Full Disk Access for attachments", result["code"] as? String == "READY" && result["allowed"] as? Bool == true, mediaAccessMessage)
+        if let index = requirements.firstIndex(where: { $0.id == "attachments" }) { requirements[index] = mediaAccessRequirement }
+        else { requirements.append(mediaAccessRequirement) }
+    }
     func optionalApprovals() { enableOpenClawApprovals() }
     func agentLinks() {
         agentCommand(["action":"status"])
@@ -630,7 +681,8 @@ final class BeepsterModule: NSObject, ObservableObject {
         requirements = [
             ConnectorRequirement("contacts", "Contact names", contactsOK, contactsOK ? "Contacts access enabled." : "Allow Contacts access to display contact names."),
             ConnectorRequirement("beeper", "Beeper connection", checks.gateway.0, checks.gateway.1),
-            ConnectorRequirement("route", "Private connection", checks.route.0, checks.route.1)]
+            ConnectorRequirement("route", "Private connection", checks.route.0, checks.route.1),
+            mediaAccessRequirement]
         setStatus(contactStatus, ok: contactsOK, name: "Contact names",
                   detail: contactsOK ? "enabled" : "permission needs attention")
         setStatus(gatewayStatus, ok: checks.gateway.0, name: "Beeper connection", detail: checks.gateway.1)
@@ -638,6 +690,7 @@ final class BeepsterModule: NSObject, ObservableObject {
         let summary = contactsOK && checks.gateway.0 && checks.route.0 ? "Messaging connection ready. Agent setup and physical-watch approval delivery require separate checks below." : "Setup needs attention"
         if finishWorking { setWorking(false, message: summary) }
         else { message = summary; setupSummary?.stringValue = summary }
+        checkMediaAccess()
     }
 
     @objc private func refresh() {

@@ -13,6 +13,7 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@openclaw/gateway-client": "^2026.8.1"
+    "@openclaw/gateway-client": "^2026.8.1",
+    "omggif": "1.0.10"
   }
 }

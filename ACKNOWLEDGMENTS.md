@@ -12,6 +12,7 @@ sharing foundations that let small ideas become useful things.
 - **[Obsidian](https://obsidian.md/) and its community:** for the Markdown vault workflow behind Notesy.
 - **[Excalidraw](https://github.com/excalidraw/excalidraw), [Zsolt Viczian and the Obsidian Excalidraw plugin community](https://github.com/zsviczian/obsidian-excalidraw-plugin):** for drawings, local rendering, and the file formats Notesy can read. The Obsidian plugin itself is not bundled or required.
 - **[React](https://react.dev/), [LZ-String](https://github.com/pieroxy/lz-string), and [esbuild](https://esbuild.github.io/) contributors:** for the Notesy renderer and its build tools.
+- **[omggif](https://github.com/deanm/omggif) contributors:** for the MIT-licensed local GIF decoder; its license is bundled with the dependency.
 - **[Tailscale](https://tailscale.com/) and its developers:** for private phone-to-Mac connections.
 - **[Sparkle](https://sparkle-project.org/) and its maintainers and contributors:** for the signed software-update framework and release tools.
 - **[Pebble](https://repebble.com/), its original and current teams, and the [Rebble community](https://rebble.io/):** for the watches, SDK, PebbleKit, emulator, documentation, and community support.

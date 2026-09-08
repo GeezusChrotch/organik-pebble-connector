@@ -85,6 +85,16 @@ test('messages keep their original emoji while exposing bitmap tokens for the wa
     ['1f602','1f468-200d-1f469-200d-1f467','1f44d-1f3fd']);
 });
 
+test('link preference formats full text before generating bitmap emoji tokens', async () => {
+  const client = new BeeperClient({baseURL:'http://beeper.invalid',accessToken:'test',
+    fetchImpl:async () => new Response(JSON.stringify({items:[{id:'m',text:'Hi 😂 <a href="https://example.com/private">Read more</a>'}]}), {status:200})});
+  const shown = (await client.listMessages('chat',12)).items[0];
+  const hidden = (await client.listMessages('chat',12,'',true)).items[0];
+  assert.equal(shown.text,'Hi 😂 Read more');
+  assert.equal(hidden.text,'Hi 😂');
+  assert.equal(hidden.watchText,'Hi \u001e1f602\u001f');
+});
+
 test('missing participant names can be filled from the account contact list', async () => {
   const fetchImpl = async (url) => {
     if (url.includes('/contacts/list')) return new Response(JSON.stringify({items:[{id:'person-1',fullName:'Contact Book Name'}]}), {status:200});
@@ -387,7 +397,9 @@ test('attachments use opaque IDs and can produce watch-native previews', async (
     }]}), {status:200});
   };
   let convertedInput = null;
-  const previewCreator = async (inputPath) => {
+  const modes = [];
+  const previewCreator = async (inputPath, outputPath, run, options) => {
+    modes.push(options.mode);
     convertedInput = inputPath;
     return {width:2,height:1,pixels:Buffer.from([0xc0,0xff])};
   };
@@ -401,6 +413,10 @@ test('attachments use opaque IDs and can produce watch-native previews', async (
   assert.deepEqual([...preview.pixels], [0xc0,0xff]);
   assert.equal(cachedPreview, preview);
   assert.equal(paths.filter((path) => path.startsWith('/v1/assets/serve')).length, 1);
+  await client.getAttachmentPreview(messages.items[0].attachment.id, 'high-contrast');
+  await client.getAttachmentPreview(messages.items[0].attachment.id, 'high-contrast');
+  await client.getAttachmentPreview(messages.items[0].attachment.id, 'invalid');
+  assert.deepEqual(modes, ['natural', 'high-contrast']);
   assert.ok(convertedInput);
   assert.match(paths[1], /^\/v1\/assets\/serve\?url=mxc%3A%2F%2Fprivate%2Fmedia$/);
 });

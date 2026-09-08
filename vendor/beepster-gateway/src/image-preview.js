@@ -1,7 +1,8 @@
 import { execFile as execFileCallback } from 'node:child_process';
 import { promisify } from 'node:util';
-import { readFile } from 'node:fs/promises';
+import { readFile, open } from 'node:fs/promises';
 import imageProcessing from './pebble-image.cjs';
+import { createGIFPreview } from './gif-preview.js';
 
 const execFile = promisify(execFileCallback);
 
@@ -47,12 +48,23 @@ export function decodeBMP(buffer, { mode = 'original' } = {}) {
   return { width, height, pixels: Buffer.from(imageProcessing.quantizeImage({ width, height, rgba, mode, kind: 'photo' })) };
 }
 
-export async function createWatchPreview(inputPath, outputPath, run = execFile, { mode = 'natural' } = {}) {
+export async function createWatchPreview(inputPath, outputPath, run = execFile, { mode = 'natural', kind = 'image' } = {}) {
+  // stat/access may succeed on protected Apple Messages files even when reads
+  // are denied by macOS. Preserve the actual access error before sips masks it.
+  const input = await open(inputPath, 'r');
+  try { await input.read(Buffer.alloc(1), 0, 1, 0); } finally { await input.close(); }
+  if (kind === 'gif') {
+    try { return await createGIFPreview(inputPath, mode); }
+    catch (error) {
+      if (['EPERM','EACCES'].includes(error.code)) throw error;
+      // Unsupported/oversized animations retain the existing still preview.
+    }
+  }
   await run('/usr/bin/sips', [
     '-s', 'format', 'bmp',
     '--resampleHeightWidthMax', '180',
     inputPath,
     '--out', outputPath
-  ]);
+  ], {timeout: 10000, maxBuffer: 256 * 1024});
   return decodeBMP(await readFile(outputPath), { mode });
 }

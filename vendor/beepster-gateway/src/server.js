@@ -9,6 +9,7 @@ import { createAgentApprovals } from './agent-approvals.js';
 import { readAgentLinks } from './agent-settings.js';
 import { createHermesApprovalClient } from './hermes-client.js';
 import { createOpenClawTelegramClient } from './openclaw-telegram.js';
+import { probeMediaAccess } from './media-access.js';
 
 const MAX_BODY_BYTES = 16 * 1024;
 
@@ -51,12 +52,13 @@ function sendPreview(response, preview) {
   response.end(payload);
 }
 
-function sendPreviewJSON(response, preview) {
+function sendPreviewJSON(response, preview, animate = false) {
   sendJSON(response, 200, {
     width: preview.width,
     height: preview.height,
     kind: preview.kind,
-    pixels: preview.pixels.toString('base64')
+    pixels: (animate && preview.framePixels ? preview.framePixels : preview.pixels).toString('base64'),
+    ...(animate ? {frames: preview.frames || 1} : {})
   });
 }
 
@@ -87,7 +89,7 @@ function replyChatIDs(primaryChatID, fallbackChatIDs) {
     value && value.length <= 500 && items.indexOf(value) === index).slice(0, 10);
 }
 
-export function createServer({ beeperClient, openClawClient = null, hermesClient = null, telegramApprovals = false, readLinks = async () => [], gatewayToken, pairingCode = '', rotatePairingCode = async () => '', logger = console }) {
+export function createServer({ beeperClient, openClawClient = null, hermesClient = null, telegramApprovals = false, readLinks = async () => [], gatewayToken, pairingCode = '', rotatePairingCode = async () => '', logger = console, mediaAccessProbe = probeMediaAccess }) {
   if (!gatewayToken) throw new Error('gatewayToken is required');
   const cache = new Map();
   const replyRequests = new Map();
@@ -148,6 +150,11 @@ export function createServer({ beeperClient, openClawClient = null, hermesClient
 
       if (request.headers.authorization !== `Bearer ${gatewayToken}`) {
         sendJSON(response, 401, { error: 'Unauthorized' });
+        return;
+      }
+
+      if (url.pathname === '/v1/media/access' && request.method === 'GET') {
+        sendJSON(response, 200, await mediaAccessProbe());
         return;
       }
 
@@ -358,12 +365,28 @@ export function createServer({ beeperClient, openClawClient = null, hermesClient
 
       const attachmentMatch = url.pathname.match(/^\/v1\/attachments\/([a-f0-9]{24})\/preview$/);
       if (attachmentMatch && request.method === 'GET') {
-        const preview = await beeperClient.getAttachmentPreview(attachmentMatch[1], url.searchParams.get('imageMode'));
+        let preview;
+        try {
+          preview = await beeperClient.getAttachmentPreview(attachmentMatch[1], url.searchParams.get('imageMode'));
+        } catch (error) {
+          // Diagnose service-context failures without logging attachment URLs,
+          // local paths, message IDs, tokens or converter stderr content.
+          const code = String(error.code || 'unknown').replace(/[^A-Za-z0-9_]/g, '').slice(0,40);
+          const denied = ['EACCES','EPERM'].includes(error.code) || /permission denied|operation not permitted/i.test(String(error.stderr || '') + String(error.message || ''));
+          const missing = error.code === 'ENOENT' || error.code === 'BEEPSTER_MEDIA_MISSING';
+          const timeout = error.killed === true || /timeout|timed out/i.test(String(error.message || ''));
+          logger.error(`attachment preview failed code=${code} denied=${denied} missing=${missing} timeout=${timeout}`);
+          if (denied) {
+            sendJSON(response, 403, {error: 'Mac media access is blocked. Open the Connector to enable Apple Messages media access.', code: 'MEDIA_PERMISSION'});
+            return;
+          }
+          throw error;
+        }
         if (!preview) {
           sendJSON(response, 404, { error: 'Attachment is no longer available; reload the chat' });
           return;
         }
-        if (url.searchParams.get('format') === 'json') sendPreviewJSON(response, preview);
+        if (url.searchParams.get('format') === 'json') sendPreviewJSON(response, preview, url.searchParams.get('animate') === '1');
         else sendPreview(response, preview);
         return;
       }

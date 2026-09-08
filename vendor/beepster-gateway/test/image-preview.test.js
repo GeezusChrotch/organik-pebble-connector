@@ -2,6 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { decodeBMP, pebbleColor } from '../src/image-preview.js';
 
+test('native sips RGBA bitmaps composite transparency and validate masks',()=>{
+  const bmp=Buffer.alloc(146);bmp.write('BM');bmp.writeUInt32LE(138,10);
+  bmp.writeUInt32LE(124,14);bmp.writeInt32LE(2,18);bmp.writeInt32LE(-1,22);
+  bmp.writeUInt16LE(32,28);bmp.writeUInt32LE(3,30);
+  [0xff0000,0xff00,0xff,0xff000000].forEach((mask,i)=>bmp.writeUInt32LE(mask,54+i*4));
+  bmp.set([0,0,0,0,0,0,255,255],138);
+  assert.deepEqual([...decodeBMP(bmp).pixels],[255,240]);
+  bmp.writeUInt32LE(0,54);assert.throws(()=>decodeBMP(bmp),/unsupported/);
+  bmp.writeUInt32LE(0,30); // BI_RGB's fourth byte is unused, including zero.
+  assert.deepEqual([...decodeBMP(bmp).pixels],[192,240]);
+});
+
 function bmp24(width, signedHeight, rows) {
   const height = Math.abs(signedHeight);
   const stride = Math.ceil((width * 3) / 4) * 4;

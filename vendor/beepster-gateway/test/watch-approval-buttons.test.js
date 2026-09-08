@@ -10,21 +10,25 @@ test('approval controls have distinct focus and bypass message expansion and scr
   const draw = source.slice(source.indexOf('static void draw_message('), source.indexOf('static void retry_messages('));
   assert.match(draw, /selected \? GColorBlack : GColorWhite/);
   assert.match(draw, /selected \? GColorWhite : GColorBlack/);
-  assert.match(draw, /selected \? "> Hold center to choose" : NULL/);
+  assert.match(draw, /if \(selected\) graphics_draw_text\(ctx, "> Hold center to choose"/);
   assert.match(source, /if \(message->is_approval > 1\) return 58;/);
   const selection = source.slice(source.indexOf('static void message_selection_changed('), source.indexOf('static int32_t message_content_height('));
   assert.ok(selection.indexOf('message->is_approval > 1') < selection.indexOf('request_selected_content'));
   const navStart = source.indexOf('static void message_move_selection(int delta) {');
   const navigation = source.slice(navStart, source.indexOf('static void install_message_clicks(', navStart));
-  const branch = navigation.slice(navigation.indexOf('  if (message->is_approval > 1) {'), navigation.indexOf('  bool expanded'));
+  const branch = navigation.slice(navigation.indexOf('  if (message->is_approval > 1) {'), navigation.indexOf('  message_scroll_pixels('));
   const directory = mkdtempSync(join(tmpdir(), 'beepster-choice-nav-'));
   try {
     writeFileSync(join(directory, 'test.c'), `
 #include <assert.h>
 #include <stddef.h>
+#include <stdint.h>
 typedef struct { int section, row; } MenuIndex;
 typedef struct { int is_approval; } Message;
 static int s_message_count = 4, selected, dirty;
+static int s_message_anchor, s_message_offset;
+static int s_message_follow_newest;
+static void message_view_refresh(void) { dirty++; }
 static void *s_message_menu;
 #define MenuRowAlignTop 0
 #define false 0
@@ -73,8 +77,11 @@ typedef int ButtonAction;
 #define BUTTON_ID_SELECT 1
 #define BUTTON_ID_UP 0
 #define BUTTON_ID_DOWN 2
-#define BUTTON_BINDING_COUNT 12
-static int s_button_actions[12];
+#define BUTTON_ID_BACK 3
+#define BUTTON_BINDING_COUNT 14
+#define BUTTON_ACTION_MAIN_TOP 9
+static int s_button_actions[14];
+static int last_action;
 static bool approval;
 static int menus, actions;
 static int scrolls;
@@ -88,8 +95,8 @@ static void send_quick_reply_to_phone(int i, bool create) { decisions++; last_de
 static ButtonId click_recognizer_get_button_id(int button) { return button; }
 static bool selected_message_is_approval(void) { return approval; }
 static void thread_quick_replies(void *a, void *b) { menus++; }
-static int binding_slot(int b, bool l, bool m) { return b; }
-static void perform_button_action(int a, bool m) { actions++; }
+${source.slice(source.indexOf("static int binding_slot("),source.indexOf("static MenuIndex selected_chat_row("))}
+static void perform_button_action(int a, bool m) { actions++; last_action=a; }
 ${source.slice(start, end)}
 int main(void) {
   approval = true;
@@ -116,6 +123,10 @@ int main(void) {
   s_messages[0].is_approval = 4;
   configured_button_click(1, true, true);
   assert(decisions == 2); // Always opens confirmation, never sends on first click.
+  int previous=actions;s_button_actions[12]=42;s_button_actions[13]=43;
+  configured_button_click(BUTTON_ID_BACK,false,true);assert(actions==previous&&decisions==2);
+  approval=false;configured_button_click(BUTTON_ID_BACK,false,true);assert(last_action==43&&actions==previous+1);
+  configured_button_click(BUTTON_ID_BACK,false,false);assert(last_action==42&&actions==previous+2);
 }
 `);
     execFileSync('cc', [join(directory, 'test.c'), '-o', join(directory, 'test')]);

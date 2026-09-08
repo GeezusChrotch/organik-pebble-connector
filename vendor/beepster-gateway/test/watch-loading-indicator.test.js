@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const source=readFileSync(new URL('../../src/c/main.c',import.meta.url),'utf8');
+test('conversation batches keep existing rows visible until the complete replacement arrives',()=>{
+  const start=source.slice(source.indexOf('if (strcmp(command->value->cstring, "chats_start")'),source.indexOf('if (strcmp(command->value->cstring, "messages_start")'));
+  assert.doesNotMatch(start,/s_chat_count = 0|s_chat_state = VIEW_LOADING|menu_layer_reload_data|set_status/);
+  assert.match(start,/s_incoming_chat_mask = 0/);
+  const incoming=source.slice(source.indexOf('if (strcmp(command->value->cstring, "chat")'),source.indexOf('if (strcmp(command->value->cstring, "message")'));
+  assert.match(incoming,/s_incoming_chats\[slot\]/);
+  assert.doesNotMatch(incoming,/s_chats\[slot\]/);
+  const pagingStart=source.indexOf('static void request_chat_page(bool older) {');
+  const paging=source.slice(pagingStart,source.indexOf('static void open_chat_at_index',pagingStart));
+  assert.doesNotMatch(paging,/VIEW_LOADING|set_status|menu_layer_reload_data/);
+  assert.match(source,/memcpy\(s_chats, s_incoming_chats, count \* sizeof\(Chat\)\)/);
+  assert.match(source,/s_incoming_chat_mask != \(\(1u << count\) - 1u\)/);
+});
+test('loading replaces the content with centered Loading text, not a chat overlay',()=>{
+  const start=source.indexOf('static void set_status(TextLayer *layer, ViewState state, bool messages) {');
+  const body=source.slice(start,source.indexOf('static void invalidate_message_layouts',start));
+  assert.match(body,/GRect\(0, bounds.size.h \/ 2 - 22, bounds.size.w, 44\)/);
+  assert.match(body,/GRect\(14, 58, bounds.size.w - 28, 110\)/);
+  assert.match(body,/state == VIEW_LOADING \? "Loading…" : state_text/);
+  assert.match(body,/layer_set_hidden\(menu_layer_get_layer\(s_chat_menu\), state != VIEW_READY\)/);
+  assert.match(body,/layer_set_hidden\(s_message_view, state != VIEW_READY\)/);
+  assert.doesNotMatch(source,/"Loading full message…"/);
+});
+test('paging boundaries do not draw labels or reserve a full menu row',()=>{
+  const start=source.indexOf('static int16_t chat_row_height(');
+  const body=source.slice(start,source.indexOf('static void draw_chat(',start));
+  assert.match(body,/if \(chat_index < 0\) return 1;/);
+  assert.doesNotMatch(source,/"< Newer conversations"|"Older conversations >"/);
+  assert.doesNotMatch(source,/is_newer_chat_row|is_older_chat_row/);
+  assert.match(source,/return s_chat_state == VIEW_READY \? \(uint16_t\)s_chat_count : 0/);
+  const startSelection=source.indexOf('static void chat_selection_changed(');
+  const selection=source.slice(startSelection,source.indexOf('static void request_chat_page(',startSelection));
+  assert.doesNotMatch(selection,/request_command|request_chat_page/);
+  assert.match(selection,/app_timer_register\(150, chat_boundary/);
+  assert.match(selection,/s_restoring_chat_page/);
+});

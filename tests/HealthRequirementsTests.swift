@@ -17,6 +17,15 @@ import Foundation
         external.privateReady = false
         assert(external.requirements.contains { !$0.ready })
         let beepster = BeepsterModule()
+        for code in ["MEDIA_PERMISSION", "CHECK_FAILED", "NO_LOCAL_ATTACHMENTS"] {
+            beepster.updateMediaAccess(["code": code])
+            assert(beepster.requirements.first { $0.id == "attachments" }?.ready == false)
+        }
+        beepster.updateMediaAccess(["code": "READY", "allowed": true])
+        assert(beepster.requirements.first { $0.id == "attachments" }?.ready == true)
+        beepster.updateMediaAccess(["code": "MEDIA_PERMISSION", "allowed": false])
+        assert(beepster.requirements.first { $0.id == "attachments" }?.ready == false)
+        assert(beepster.requirements.filter { $0.id == "attachments" }.count == 1)
         beepster.updateAgentHealth([
             AgentBridgeHealth(provider:"hermes", enabled:true, ready:false, detail:"Offline"),
             AgentBridgeHealth(provider:"openclaw", enabled:false, ready:true, detail:"Disabled")])

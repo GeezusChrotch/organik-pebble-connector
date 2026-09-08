@@ -5,7 +5,52 @@ import vm from 'node:vm';
 
 const source = await readFile(new URL('../../src/pkjs/index.js', import.meta.url), 'utf8');
 
-function replyRuntime({ autoAck = true } = {}) {
+test('media-only messages keep a blank caption instead of a no-text error',()=>{
+  const {context,appMessages}=replyRuntime();
+  context.queueMessage({id:'gif',text:'',attachment:{id:'asset',kind:'gif'}},0,1);
+  context.sendMessageDetail('gif');
+  assert.equal(appMessages.find(m=>m[0]==='message')[11],' ');
+  assert.equal(appMessages.find(m=>m[0]==='message_detail_chunk')[31],' ');
+  assert.ok(!appMessages.some(m=>String(m[31]||'').includes('contains no text')));
+});
+
+test('animated previews opt in, carry frame count, reject bad lengths and discard superseded transfers',()=>{
+  const {context,requests,appMessages}=replyRuntime();
+  context.loadAttachment('gif');const xhr=requests.at(-1);
+  assert.match(xhr.url,/animate=1/);
+  xhr.status=200;xhr.responseText=JSON.stringify({width:2,height:1,kind:'gif',frames:3,pixels:Buffer.from([192,255,240,192,192,240]).toString('base64')});xhr.onload();
+  assert.equal(appMessages.find(m=>m[0]==='media_start')[39],3);
+  assert.equal(appMessages.find(m=>m[0]==='media_start')[29],6);
+  context.loadAttachment('bad');const bad=requests.at(-1);bad.status=200;bad.responseText=JSON.stringify({width:2,height:1,kind:'gif',frames:7,pixels:'wP8='});bad.onload();
+  assert.ok(appMessages.some(m=>m[0]==='media_failed'&&m[23]==='bad'));
+  context.loadAttachment('old');const old=requests.at(-1);context.loadAttachment('new');
+  const count=appMessages.length;old.status=200;old.responseText=xhr.responseText;old.onload();assert.equal(appMessages.length,count);
+});
+
+test('reaction-only changes refresh, use bitmap slots, and stay on the parent message',()=>{
+ const {context,appMessages}=replyRuntime();
+ const item={id:'parent',sender:'Me',text:'Hello',reactions:[{sender:'Avery',isSelf:false,text:'👍',watchText:'\x1e1f44d\x1f',emojiKeys:['1f44d']}]};
+ const before=context.messageSignature([{...item,reactions:[]}]);
+ assert.notEqual(context.messageSignature([item]),before);
+ context.addChatEmojiKeys([item],true);context.queueMessage(item,0,1);
+ const packet=appMessages.find(m=>m[0]==='message');
+ assert.equal(packet[30],'parent');assert.equal(packet[38],'Avery\t0\t\x1dA\x1d\n');
+ assert.equal(context.watchReactions([]),'');
+ const large=context.watchReactions(Array(30).fill(item.reactions[0]));
+ assert.ok(context.utf8ByteLength(large)<192);assert.match(large,/more reactions/);
+});
+
+test('image preference persists and reaches attachment conversion',()=>{
+  const {context,eventListeners,storage,requests}=replyRuntime();
+  eventListeners.webviewclosed({response:encodeURIComponent(JSON.stringify({imageMode:'high-contrast'}))});
+  assert.equal(storage.get('beepster_image_mode'),'high-contrast');
+  context.loadAttachment('photo-id');
+  assert.match(requests.at(-1).url,/imageMode=high-contrast$/);
+  eventListeners.webviewclosed({response:encodeURIComponent(JSON.stringify({imageMode:'bad'}))});
+  assert.equal(storage.get('beepster_image_mode'),'high-contrast');
+});
+
+function replyRuntime({ autoAck = true, pageSize = 30 } = {}) {
   const requests = [];
   const timers = [];
   const appMessages = [];
@@ -43,6 +88,7 @@ function replyRuntime({ autoAck = true } = {}) {
     Uint8Array
   };
   vm.runInNewContext(source, context);
+  context.CHAT_PAGE_SIZE = pageSize;
   return { context, requests, timers, appMessages, storage, eventListeners, openedURLs };
 }
 
@@ -52,6 +98,23 @@ test('paired users open settings directly on their saved private gateway', () =>
   assert.equal(openedURLs.length, 1);
   assert.match(openedURLs[0], /^https:\/\/gateway\.example\/configure#/);
   assert.doesNotMatch(openedURLs[0], /github\.io/);
+});
+
+test('hide links persists through settings and applies to history and live-message reads only', () => {
+  const {context,eventListeners,storage,requests,openedURLs}=replyRuntime();
+  eventListeners.webviewclosed({response:encodeURIComponent(JSON.stringify({hideLinks:true}))});
+  assert.equal(storage.get('beepster_hide_links'),'1');
+  eventListeners.showConfiguration();
+  assert.equal(JSON.parse(decodeURIComponent(openedURLs[0].split('#')[1])).hideLinks,true);
+  context.request('/v1/chats/test/messages?limit=12',()=>{});
+  assert.match(requests.at(-1).url,/&hideLinks=1$/);
+  context.request('/v1/chats/test/messages?limit=12&cursor=older',()=>{});
+  assert.match(requests.at(-1).url,/&hideLinks=1$/);
+  context.request('/v1/agents/approvals?chatID=test',()=>{});
+  assert.doesNotMatch(requests.at(-1).url,/hideLinks/);
+  eventListeners.webviewclosed({response:encodeURIComponent(JSON.stringify({hideLinks:false}))});
+  context.request('/v1/chats/test/messages?limit=12',()=>{});
+  assert.doesNotMatch(requests.at(-1).url,/hideLinks/);
 });
 
 test('a personal build migrates a stale saved gateway without losing its credential', () => {
@@ -116,7 +179,7 @@ test('opening emoji replies downloads and transfers only the configured bitmap a
   assert.equal(requests[0].url, 'https://gateway.example/v1/emoji/atlas');
   const requested = JSON.parse(requests[0].body);
   assert.equal(requested.keys.length, 15);
-  assert.deepEqual({size:requested.size,columns:requested.columns}, {size:20,columns:5});
+  assert.deepEqual({size:requested.size,columns:requested.columns}, {size:26,columns:5});
   requests[0].status = 200;
   requests[0].responseText = JSON.stringify({
     width:100,height:60,pixels:Buffer.alloc(6000, 0xc0).toString('base64'),
@@ -140,7 +203,7 @@ test('message emoji tokens become compact inline bitmap slots', () => {
   }]});
   requests[0].onload();
   const atlasRequest = requests.find(request => request.url.endsWith('/v1/emoji/atlas'));
-  assert.deepEqual(JSON.parse(atlasRequest.body), {keys:['1f602','2764'],size:18,columns:4});
+  assert.deepEqual(JSON.parse(atlasRequest.body), {keys:['1f602','2764'],size:24,columns:4});
   const message = appMessages.find(packet => packet[0] === 'message');
   assert.equal(message[11], 'Nice \x1dA\x1d \x1dB\x1d');
   assert.equal(message[36], 0);
@@ -307,6 +370,35 @@ test('full message detail packets stay tagged to their originating message', () 
   assert.equal(appMessages.at(-1)[30], 'message-1');
 });
 
+test('reply progress bypasses bulk content without losing status order', () => {
+  const {context,appMessages}=replyRuntime({autoAck:false});
+  context.enqueue({0:'media_chunk'});
+  for(let i=0;i<20;i++)context.enqueue({0:'message_detail_chunk'});
+  context.sendState('reply_sending');
+  context.sendState('reply_pending');
+  context.sendState('reply_sent');
+  assert.equal(appMessages.length,1);
+  assert.equal(context.queue[0].message[0],'media_chunk');
+  assert.deepEqual(Array.from(context.queue.slice(1,4),entry=>entry.message[1]),
+    ['reply_sending','reply_pending','reply_sent']);
+  assert.equal(context.queue[4].message[0],'message_detail_chunk');
+});
+
+test('large text uses fewer packets without exceeding the watch inbox', () => {
+  const {context,appMessages}=replyRuntime();
+  const body='é🚀'.repeat(1000);
+  context.messageTextByID['m'.repeat(120)]=body;
+  context.sendMessageDetail('m'.repeat(120));
+  const chunks=appMessages.filter(packet=>packet[0]==='message_detail_chunk');
+  assert.equal(chunks.map(packet=>packet[31]).join(''),body);
+  assert.equal(chunks.length,5); // Previously 13 packets at 500 bytes per chunk.
+  for(const packet of chunks){
+    const bytes=1+Object.entries(packet).reduce((total,[key,value])=>total+7+Buffer.byteLength(String(value),'utf8')+1,0);
+    assert.ok(bytes<2048);
+    assert.ok(Buffer.byteLength(packet[31],'utf8')<=1400);
+  }
+});
+
 test('inline photo packets stay tagged to their originating attachment', () => {
   const { context, requests, appMessages } = replyRuntime();
   context.loadAttachment('attachment-1');
@@ -355,17 +447,40 @@ test('button defaults are sent to the watch and included in settings', () => {
   const { eventListeners, appMessages, openedURLs } = replyRuntime();
   eventListeners.ready();
   const bindings = appMessages.filter((message) => message[0] === 'button_binding');
-  assert.equal(bindings.length, 12);
+  assert.equal(bindings.length, 14);
   assert.deepEqual(bindings.map((message) => message[1]), [
-    'scroll_up','scroll_up','open_chat','pin_toggle','scroll_down','scroll_down',
-    'scroll_up','quick_reply','dictate','dictate','scroll_down','jump_newest'
+    'scroll_up','quick_reply','open_chat','dictate','scroll_down','delete',
+    'scroll_up','quick_reply','none','dictate','scroll_down','delete','main_top','main_top'
   ]);
   const ready = appMessages.find((message) => message[0] === 'button_bindings_ready');
-  assert.equal(ready[3], 2);
+  assert.equal(ready[3], 1);
   eventListeners.showConfiguration();
   const state = JSON.parse(decodeURIComponent(openedURLs[0].split('#')[1]));
-  assert.equal(state.buttonBindings.length, 12);
-  assert.equal(state.scrollLines, 2);
+  assert.equal(state.buttonBindings.length, 14);
+  assert.equal(state.scrollLines, undefined);
+});
+
+test('legacy saved scroll distance is ignored', () => {
+  const {eventListeners,appMessages,storage}=replyRuntime();
+  storage.set('beepster_scroll_lines','8');
+  eventListeners.ready();
+  assert.equal(appMessages.find(message=>message[0]==='button_bindings_ready')[3],1);
+});
+
+test('unchanged old defaults migrate but custom mappings are preserved', () => {
+  const {context, storage} = replyRuntime();
+  const old = ['scroll_up','scroll_up','open_chat','pin_toggle','scroll_down','scroll_down',
+    'scroll_up','quick_reply','dictate','dictate','scroll_down','jump_newest','none','none'];
+  for (const count of [12,14]) {
+    storage.set('beepster_button_bindings', JSON.stringify(old.slice(0,count)));
+    assert.deepEqual(Array.from(context.configuredButtonBindings()), Array.from(context.DEFAULT_BUTTON_BINDINGS));
+  }
+  old[1] = 'pin_toggle';
+  storage.set('beepster_button_bindings', JSON.stringify(old));
+  assert.deepEqual(Array.from(context.configuredButtonBindings()), old);
+  old[13] = 'main_top';
+  storage.set('beepster_button_bindings', JSON.stringify(old));
+  assert.equal(context.configuredButtonBindings()[13], 'main_top');
 });
 
 test('custom button mappings persist and are applied immediately', () => {
@@ -373,11 +488,12 @@ test('custom button mappings persist and are applied immediately', () => {
   const custom = Array(12).fill('delete');
   eventListeners.webviewclosed({response:encodeURIComponent(JSON.stringify({buttonBindings:custom,scrollLines:7}))});
   assert.deepEqual(JSON.parse(storage.get('beepster_button_bindings')), custom);
-  assert.equal(storage.get('beepster_scroll_lines'), '7');
+  assert.equal(storage.get('beepster_scroll_lines'), undefined);
   const bindings = appMessages.filter((message) => message[0] === 'button_binding');
-  assert.equal(bindings.length, 12);
-  assert.ok(bindings.every((message) => message[1] === 'delete'));
-  assert.equal(appMessages.find((message) => message[0] === 'button_bindings_ready')[3], 7);
+  assert.equal(bindings.length, 14);
+  assert.ok(bindings.slice(0,12).every((message) => message[1] === 'delete'));
+  assert.deepEqual(bindings.slice(12).map(message=>message[1]),['main_top','main_top']);
+  assert.equal(appMessages.find((message) => message[0] === 'button_bindings_ready')[3], 1);
 });
 
 test('pending OpenClaw approvals load as exact synthetic watch messages', () => {
@@ -516,6 +632,59 @@ test('the watch inbox is bounded at thirty conversations', () => {
   assert.equal(appMessages.at(-1)[4], 30);
 });
 
+test('overlapping pages preserve the boundary conversation in both directions',()=>{
+  const {context,requests,appMessages}=replyRuntime();
+  context.loadChats();requests[0].status=200;
+  requests[0].responseText=JSON.stringify({items:Array.from({length:75},(_,i)=>({id:'c'+i,name:'C'+i,network:'Signal'})),hasMore:false});requests[0].onload();
+  context.loadOlderChats();assert.equal(context.inboxPageStart,29);
+  assert.equal(appMessages.filter(m=>m[0]==='chat').at(-30)[5],'c29');
+  assert.equal(appMessages.at(-1)[3],0);
+  context.loadOlderChats();assert.equal(context.inboxPageStart,58);
+  context.loadNewerChats();assert.equal(context.inboxPageStart,29);
+  assert.equal(appMessages.at(-1)[3],29);
+  assert.equal(appMessages.filter(m=>m[0]==='chat').at(-1)[5],'c58');
+  context.loadNewerChats();assert.equal(context.inboxPageStart,0);
+  assert.equal(appMessages.filter(m=>m[0]==='chat').at(-1)[5],'c29');
+});
+
+test('production twelve-chat batches reduce packets and retain the shared boundary',()=>{
+  assert.match(source,/var CHAT_PAGE_SIZE = 12;/);
+  const {context,requests,appMessages}=replyRuntime({pageSize:12});
+  context.loadChats();requests[0].status=200;
+  requests[0].responseText=JSON.stringify({items:Array.from({length:40},(_,i)=>({id:'c'+i,name:'C'+i,network:'Signal'})),hasMore:false});requests[0].onload();
+  assert.equal(appMessages.filter(m=>m[0]==='chat').length,12);
+  appMessages.length=0;context.loadOlderChats();
+  assert.equal(context.inboxPageStart,11);
+  assert.equal(appMessages.filter(m=>m[0]==='chat').length,12);
+  assert.equal(appMessages.filter(m=>m[0]==='chat')[0][5],'c11');
+  assert.equal(appMessages.filter(m=>['chats_start','chat','chats_ready'].includes(m[0])).length,14);
+  context.loadNewerChats();assert.equal(context.inboxPageStart,0);
+  assert.equal(appMessages.at(-1)[3],11);
+});
+
+test('returning from a message keeps an older inbox page without redrawing its selection',()=>{
+  const {context,requests,appMessages,eventListeners,timers}=replyRuntime();
+  context.loadChats();requests[0].status=200;
+  requests[0].responseText=JSON.stringify({items:Array.from({length:90},(_,i)=>({id:'c'+i,name:'C'+i,network:'Signal'})),hasMore:false});requests[0].onload();
+  context.loadOlderChats();context.loadOlderChats();
+  assert.equal(context.inboxPageStart,58);
+  eventListeners.appmessage({payload:{0:'chat_view_open',5:'c65'}});
+  const requestCount=requests.length;
+  appMessages.length=0;
+  eventListeners.appmessage({payload:{0:'thread_view_open'}});
+  assert.equal(context.inboxPageStart,58);
+  assert.equal(context.activeMessageChatID,'');
+  assert.equal(requests.length,requestCount);
+  assert.equal(appMessages.length,0); // No chats_start/reload can move the watch highlight.
+  context.loadChats('refresh');
+  assert.equal(context.inboxPageStart,58);
+  assert.equal(requests.length,requestCount);
+  assert.ok(timers.some(timer=>timer.delay===15000));
+  eventListeners.appmessage({payload:{0:'load_chats'}});
+  assert.equal(context.inboxPageStart,0); // Explicit jump-to-newest still works.
+  assert.equal(requests.length,requestCount+1);
+});
+
 test('older and newer chat pages keep only a thirty-chat watch window', () => {
   const { context, requests, appMessages } = replyRuntime();
   context.loadChats();
@@ -530,7 +699,7 @@ test('older and newer chat pages keep only a thirty-chat watch window', () => {
   appMessages.length = 0;
   context.loadOlderChats();
   let chats = appMessages.filter((message) => message[0] === 'chat');
-  assert.deepEqual(chats.map((message) => message[5]), ['chat-30','chat-31','chat-32','chat-33','chat-34']);
+  assert.deepEqual(chats.map((message) => message[5]), ['chat-29','chat-30','chat-31','chat-32','chat-33','chat-34']);
   assert.equal(appMessages.at(-1)[33], 2);
 
   appMessages.length = 0;
@@ -551,7 +720,7 @@ test('jumping from an older watch page reloads the actual newest Beeper page', (
   requests[0].responseText = JSON.stringify({items:original,hasMore:false});
   requests[0].onload();
   context.loadOlderChats();
-  assert.equal(appMessages.filter((message) => message[0] === 'chat')[30][5], 'old-30');
+  assert.equal(appMessages.filter((message) => message[0] === 'chat')[30][5], 'old-29');
 
   appMessages.length = 0;
   eventListeners.appmessage({payload:{0:'load_chats'}});
@@ -588,6 +757,30 @@ test('service filtering fetches additional pages until the watch page is populat
   requests[1].onload();
   assert.deepEqual(appMessages.filter((message) => message[0] === 'chat').map((message) => message[5]),
     ['instagram-1','instagram-2']);
+});
+
+test('paging waits for an in-flight refresh instead of silently dropping the request', () => {
+  const {context,requests,appMessages,timers}=replyRuntime();
+  context.loadChats();
+  context.loadOlderChats();
+  const retry=timers.find(timer=>timer.delay===500);
+  assert.ok(retry);
+  requests[0].status=200;
+  requests[0].responseText=JSON.stringify({items:Array.from({length:60},(_,i)=>({id:'chat-'+i,name:'Chat '+i,network:'Signal'})),hasMore:false});
+  requests[0].onload();
+  retry.callback();
+  assert.equal(context.inboxPageStart,29);
+  assert.equal(appMessages.at(-1)[0],'chats_ready');
+  assert.equal(appMessages.at(-1)[1],'older');
+});
+
+test('background refresh does not cancel an in-flight conversation page', () => {
+  const {context,requests}=replyRuntime();
+  context.inboxPageLoading=true;
+  const generation=context.chatLoadGeneration;
+  context.loadChats('refresh');
+  assert.equal(context.chatLoadGeneration,generation);
+  assert.equal(requests.length,0);
 });
 
 test('selected inbox sections are appended in configured order', () => {
@@ -803,6 +996,40 @@ test('active chat polling stops when the watch leaves the chat', () => {
   assert.equal(requests.length, 1);
 });
 
+test('a new agent reply is detected even behind twelve unchanged approval rows', () => {
+  const {context, requests, appMessages} = replyRuntime();
+  const actions = Array.from({length:12}, (_, i) => ({id:'act-' + i, text:'Approval choice'}));
+  context.loadMessages('agent-chat');
+  requests[0].status = 200;
+  requests[0].responseText = JSON.stringify({items:[{id:'first',text:'First reply'}, ...actions]});
+  requests[0].onload();
+  const before = appMessages.length;
+  context.refreshActiveMessages();
+  requests[1].status = 200;
+  requests[1].responseText = JSON.stringify({items:[{id:'new',text:'New reply'}, ...actions]});
+  requests[1].onload();
+  assert.ok(appMessages.slice(before).some(packet => packet[0] === 'message' && packet[30] === 'new'));
+});
+
+test('returning from replies resumes polling and delivers the next incoming reply', () => {
+  const {context, eventListeners, requests, timers, appMessages} = replyRuntime();
+  context.loadMessages('hermes-chat');
+  requests[0].status = 200;
+  requests[0].responseText = JSON.stringify({items:[{id:'initial',text:'Hello'}]});
+  requests[0].onload();
+  eventListeners.appmessage({payload:{0:'views_closed'}});
+  assert.equal(context.messageRefreshTimer, null);
+  assert.equal(context.activeMessageChatID, '');
+  eventListeners.appmessage({payload:{0:'chat_view_open',5:'hermes-chat'}});
+  timers[context.messageRefreshTimer - 1].callback();
+  assert.match(requests[1].url, /hermes-chat\/messages/);
+  requests[1].status = 200;
+  requests[1].responseText = JSON.stringify({items:[{id:'response',text:'Here is my response'}]});
+  requests[1].onload();
+  assert.ok(appMessages.some(packet => packet[0] === 'message' && packet[30] === 'response'));
+  assert.equal(timers[context.messageRefreshTimer - 1].delay, 15000);
+});
+
 test('the visible conversation list refreshes every fifteen seconds and pauses when hidden', () => {
   const { context, eventListeners, requests, timers } = replyRuntime();
   context.scheduleRefresh();
@@ -857,4 +1084,11 @@ test('new message detail discards unsent chunks for the previous selection', () 
   assert.equal(context.queue[0].message[30], 'old');
   assert.ok(context.queue.slice(1).every((item) => item.message[30] === 'current'));
   assert.equal(context.queue.at(-1).message[0], 'message_detail_end');
+});
+
+test('Double Back custom bindings persist separately for list and chat',()=>{
+ const {eventListeners,appMessages,storage}=replyRuntime();const custom=Array(12).fill('scroll_up').concat(['pin_toggle','quick_reply']);
+ eventListeners.webviewclosed({response:encodeURIComponent(JSON.stringify({buttonBindings:custom}))});
+ assert.deepEqual(JSON.parse(storage.get('beepster_button_bindings')),custom);
+ assert.deepEqual(appMessages.filter(m=>m[0]==='button_binding').slice(-2).map(m=>m[1]),['pin_toggle','quick_reply']);
 });

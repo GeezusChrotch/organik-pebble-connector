@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector
 
-One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.8.2 requires macOS 14 or newer.
+One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.8.7 requires macOS 14 or newer.
 
 Drag the app into Applications and open it. Use the sidebar to select an app. Each connector has the same three sections: **Setup**, **Requirements**, and **Troubleshooting**. Follow the numbered Setup steps from top to bottom, then use Check connection to refresh its requirements.
 
@@ -123,3 +123,11 @@ Includes Notesy 1.4.7 with complete long task text. Long tasks continue across r
 ## Changes in 0.8.2
 
 Supports the larger emoji previews in Beepster 0.19.0, including 26-pixel quick-reply emojis. The matching watch update also enlarges service icons and chat emojis and uses a clearer sender stripe. Install Connector 0.8.2, choose **Beepster → Set up service**, then reopen phone settings and install the matching watch update. Notesy 1.4.7 and its task-text fix are retained.
+
+## Changes in 0.8.7
+
+Beepster now checks **Full Disk Access for attachments** in the overview. For Apple Messages photos and GIFs, use **Allow attachment access**, add the selected Beepster service to Full Disk Access, then choose **Restart and recheck**. Checks run in the background.
+
+Includes the Beepster 0.20.0 gateway for reaction names, GIF previews and YouTube thumbnails, plus the Notesy 1.4.8 watch package. After updating, choose **Beepster → Set up service** to install the bundled gateway; replacing the Mac app alone does not update that service. Watch updates are separate.
+
+Pome continues to connect to Itsyhome. This release does not install or enable a HomeKit camera helper.

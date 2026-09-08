@@ -32,3 +32,14 @@ test('a requested watch atlas preserves chosen order and intentional duplicate s
   assert.deepEqual(atlas.entries.map(entry => entry.key), ['1f602', '2764', '1f602']);
   assert.ok(atlas.pixels.some(pixel => pixel !== 0));
 });
+
+test('enlarged chat and reply atlases fit watch budgets without changing slot order',()=>{
+  for(const [count,size,columns,budget] of [[12,24,4,6912],[15,26,5,12000]]){
+    const atlas=renderEmojiAtlas(Array(count).fill('1f602'),size,columns);
+    assert.equal(atlas.width,columns*size);
+    assert.equal(atlas.height,Math.ceil(count/columns)*size);
+    assert.ok(atlas.pixels.length<=budget);
+    assert.equal(atlas.entries.length,count);
+  }
+  assert.equal(renderEmojiAtlas(['1f602'],100,5).width,130);
+});

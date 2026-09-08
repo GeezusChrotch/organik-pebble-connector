@@ -36,6 +36,23 @@ async function withServer(client, callback, options = {}) {
   }
 }
 
+test('message cache separates each phone link-display preference', async () => {
+  const modes=[];
+  await withServer({listMessages:async (id,limit,cursor,hideLinks) => {
+    modes.push(hideLinks);
+    if (modes.length > 2) throw new Error('Synthetic upstream offline');
+    return {items:[{id:'m',text:hideLinks?'Hello':'Hello Link'}]};
+  }}, async baseURL => {
+    const headers={Authorization:'Bearer gateway-secret'};
+    for (const [query,expected] of [['','Hello Link'],['&hideLinks=1','Hello'],['','Hello Link'],['&hideLinks=1','Hello']]) {
+      const response=await fetch(baseURL+'/v1/chats/test/messages?limit=12'+query,{headers});
+      assert.equal((await response.json()).items[0].text,expected);
+    }
+  });
+  // Offline fallback must not return a cached result from another preference.
+  assert.deepEqual(modes,[false,true,false,true]);
+});
+
 test('health is public but chat data requires gateway authentication', async () => {
   await withServer({ listChats: async () => [] }, async (baseURL) => {
     assert.equal((await fetch(`${baseURL}/health`)).status, 200);
@@ -126,9 +143,9 @@ test('configuration page supports editing an existing paired connection', async 
     assert.match(html, /Jump to newest/);
     assert.match(html, /Archive conversation/);
     assert.match(html, /Delete message/);
-    assert.match(html, /Lines per scroll/);
+    assert.match(html, /one text line per button press/);
     assert.match(html, /buttonBindings:buttonBindings/);
-    assert.match(html, /scrollLines:Number/);
+    assert.doesNotMatch(html, /scrollLines/);
   });
 });
 
@@ -442,4 +459,34 @@ test('attachment previews require authentication and return dimensions without s
     assert.deepEqual(await jsonResponse.json(),
       {width:2,height:1,kind:'image',pixels:'wP8='});
   });
+});
+
+test('animation frames are opt-in and legacy clients retain the first still frame', async () => {
+  const client={getAttachmentPreview:async()=>({width:2,height:1,kind:'gif',frames:2,pixels:Buffer.from([192,255]),framePixels:Buffer.from([192,255,240,192])})};
+  await withServer(client,async baseURL=>{
+    const path=baseURL+'/v1/attachments/aaaaaaaaaaaaaaaaaaaaaaaa/preview?format=json';
+    const options={headers:{Authorization:'Bearer gateway-secret'}};
+    const still=await (await fetch(path,options)).json();assert.equal(still.pixels,'wP8=');assert.equal(still.frames,undefined);
+    const animated=await (await fetch(path+'&animate=1',options)).json();assert.equal(animated.frames,2);assert.equal(Buffer.from(animated.pixels,'base64').length,4);
+  });
+});
+
+test('media access denial is actionable and diagnostics never disclose private paths', async()=>{
+  const logs=[];
+  const client={getAttachmentPreview:async()=>{throw Object.assign(new Error('denied /private/attachment-secret.gif'),{code:'EPERM'});}};
+  await withServer(client,async baseURL=>{
+    const response=await fetch(baseURL+'/v1/attachments/aaaaaaaaaaaaaaaaaaaaaaaa/preview?format=json', {headers:{Authorization:'Bearer gateway-secret'}});
+    assert.equal(response.status,403);const body=await response.json();assert.equal(body.code,'MEDIA_PERMISSION');
+    assert.match(body.error,/Connector/);assert.doesNotMatch(JSON.stringify(body),/attachment-secret/);
+  },{logger:{error:line=>logs.push(line)}});
+  assert.match(logs[0],/code=EPERM denied=true/);assert.doesNotMatch(logs[0],/private|attachment-secret/);
+});
+
+test('media access status requires gateway authentication and returns no filesystem data', async()=>{
+  let probes=0;
+  await withServer({},async baseURL=>{
+    assert.equal((await fetch(baseURL+'/v1/media/access')).status,401);assert.equal(probes,0);
+    const result=await (await fetch(baseURL+'/v1/media/access',{headers:{Authorization:'Bearer gateway-secret'}})).json();
+    assert.deepEqual(result,{supported:true,allowed:false,code:'MEDIA_PERMISSION'});assert.equal(probes,1);
+  },{mediaAccessProbe:async()=>{probes++;return {supported:true,allowed:false,code:'MEDIA_PERMISSION'};}});
 });
