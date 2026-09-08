@@ -17,17 +17,23 @@ import CoreImage
     private var token = ""
     private var accessing = false
     private var intentionallyStopped = false
+    @Published private var completedInitialCheck = false
     let support = FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("Organik Apps Pebble Connector/StoneNotes")
     init() {
         if let data = UserDefaults.standard.data(forKey:"stone.vault") {
             var stale=false
+#if APP_STORE
+            if let url=try? URL(resolvingBookmarkData:data,options:[.withSecurityScope, .withoutUI],relativeTo:nil,bookmarkDataIsStale:&stale) { vault=url }
+#else
             if let url=try? URL(resolvingBookmarkData:data,options:.withoutUI,relativeTo:nil,bookmarkDataIsStale:&stale) {vault=url}
+#endif
         }
     }
     var requirements: [ConnectorRequirement] {
         [ConnectorRequirement("vault", "Obsidian vault", vaultReady, vault?.path ?? "Choose your Obsidian vault folder."),
          ConnectorRequirement("service", "Mac service", running && vaultReady, status),
          ConnectorRequirement("route", "Private connection", privateReady, privateCheckDetail)]
+            .map { $0.pending(vault != nil && !completedInitialCheck) }
     }
     var nextStep: String {
         if vault == nil { return "Choose vault…" }
@@ -47,7 +53,11 @@ import CoreImage
         panel.prompt="Use this vault"; panel.directoryURL=vault
         guard panel.runModal() == .OK, let url=panel.url else{return}
         do {
+#if APP_STORE
+            let data=try url.bookmarkData(options:.withSecurityScope,includingResourceValuesForKeys:nil,relativeTo:nil)
+#else
             let data=try url.bookmarkData(options:.minimalBookmark,includingResourceValuesForKeys:nil,relativeTo:nil)
+#endif
             stop();vault=url;notesFolder="Pebble";UserDefaults.standard.set(notesFolder,forKey:"stone.notesFolder");UserDefaults.standard.set(data,forKey:"stone.vault")
             status="Ready to browse \(url.lastPathComponent)."
         } catch {status=error.localizedDescription}
@@ -97,6 +107,8 @@ import CoreImage
     }
     func shutdown() {intentionallyStopped=true;process?.terminate()}
     func refresh() async {
+        guard !busy else { return }
+        defer { completedInitialCheck = true }
         if running {
             do {
                 let result=try await jsonRequest(URL(string:"http://127.0.0.1:7844/v1/health")!,token:token)

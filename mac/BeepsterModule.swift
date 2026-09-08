@@ -2,13 +2,16 @@ import AppKit
 import Foundation
 import Security
 import Combine
+#if APP_STORE
+import Contacts
+#endif
 
 final class BeepsterModule: NSObject, ObservableObject {
     @Published var requirements: [ConnectorRequirement] = [
         ConnectorRequirement("contacts", "Contact names", false, "Not checked"),
         ConnectorRequirement("beeper", "Beeper connection", false, "Not checked"),
         ConnectorRequirement("route", "Private connection", false, "Not checked"),
-        ConnectorRequirement("attachments", "Full Disk Access for attachments", false, "Not checked")]
+        ConnectorRequirement("attachments", ConnectorLabels.attachments, false, "Not checked")]
     @Published var busy = false
     @Published var message = "Not checked"
     @Published var agentState: AgentSetupState?
@@ -17,23 +20,128 @@ final class BeepsterModule: NSObject, ObservableObject {
     @Published var agentRefreshing = false
     @Published var mediaAccessBusy = false
     @Published var mediaAccessMessage = "Needed only for attachments stored by Apple Messages."
-    private var mediaAccessRequirement = ConnectorRequirement("attachments", "Full Disk Access for attachments", false, "Not checked")
+    private var mediaAccessRequirement = ConnectorRequirement("attachments", ConnectorLabels.attachments, false, "Not checked")
     private var agentRevision = 0
     private var checking = false
     private var actionRevision = 0
     @Published var agentMessage = "Check connections to discover your agent sessions and Telegram chats."
     var agentPages = 1
     private var checkedManagedGateway = false
+#if APP_STORE
+    private let bundledRuntime = BundledGatewayRuntime()
+    @Published private(set) var startingOwnedService = false
+    @Published private(set) var legacyServiceDetected = false
+    @Published private(set) var serviceConflictMessage = ""
+    private func knownLegacyService() -> Bool {
+        guard let expected = LegacyGatewayHandoff.expectedProgram else { return false }
+        let result = run("/bin/launchctl", ["print", LegacyGatewayHandoff.target])
+        return result.0 == 0 && LegacyGatewayHandoff.matches(result.1, expectedProgram: expected)
+    }
+    func switchFromLegacyService() {
+        let alert = NSAlert()
+        alert.messageText = "Switch Beepster to this Connector?"
+        alert.informativeText = "Stop the previous Beepster background service and turn off its automatic launch. Its files, settings and pairing are preserved. This Connector will run Beepster while it is open."
+        alert.addButton(withTitle: "Switch service")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        startingOwnedService = true
+        DispatchQueue.global(qos: .utility).async {
+            guard self.knownLegacyService() else {
+                DispatchQueue.main.async { self.startingOwnedService = false; self.message = "The previous service changed. Check its owner before switching; nothing was stopped." }
+                return
+            }
+            let disabledState = self.run("/bin/launchctl", ["print-disabled", "gui/\(getuid())"])
+            guard disabledState.0 == 0 else {
+                DispatchQueue.main.async { self.startingOwnedService = false; self.message = "macOS did not allow checking the previous service. Stop it from the older Connector before continuing." }
+                return
+            }
+            let wasDisabled = disabledState.1.contains("\"org.beepster.gateway\" => true")
+            let disabled = self.run("/bin/launchctl", ["disable", LegacyGatewayHandoff.target])
+            let stopped = disabled.0 == 0 ? self.run("/bin/launchctl", ["bootout", LegacyGatewayHandoff.target]) : disabled
+            if stopped.0 != 0 && disabled.0 == 0 && !wasDisabled {
+                _ = self.run("/bin/launchctl", ["enable", LegacyGatewayHandoff.target])
+            }
+            DispatchQueue.main.async {
+                self.startingOwnedService = false
+                guard stopped.0 == 0 else { self.message = "macOS could not stop the previous service. Its files and pairing are unchanged. Stop it from the older Connector, then retry setup."; return }
+                self.legacyServiceDetected = false
+                self.resumeOwnedService()
+            }
+        }
+    }
+    let storeAgents = StoreAgentConfiguration()
+#endif
+    func shutdown() {
+#if APP_STORE
+        bundledRuntime.stop(permanently: true)
+#endif
+    }
+    func applyStoreAgentConfiguration() {
+#if APP_STORE
+        DispatchQueue.global(qos: .utility).async {
+            _ = self.restartGateway()
+            DispatchQueue.main.async { self.agentLinks() }
+        }
+#endif
+    }
+    func resumeOwnedService() {
+#if APP_STORE
+        startingOwnedService = true
+        DispatchQueue.global(qos: .utility).async {
+            let result = self.installBundledService()
+            if result.0 {
+                for _ in 0..<20 {
+                    if self.gatewayHealth().0 { break }
+                    Thread.sleep(forTimeInterval: 0.1)
+                }
+            }
+            DispatchQueue.main.async {
+                self.startingOwnedService = false
+                if !result.0 { self.message = result.1 }
+                self.checkConnection()
+            }
+        }
+#endif
+    }
+    private func restartGateway() -> (Int32, String) {
+#if APP_STORE
+        bundledRuntime.stop()
+        let result = installBundledService()
+        return (result.0 ? 0 : -1, result.1)
+#else
+        return run("/bin/launchctl", ["kickstart", "-k", "gui/\(getuid())/org.beepster.gateway"])
+#endif
+    }
     func connect() { setUpBeepster() }
     func pairPhone() { connectPhone() }
     func checkConnection() { if !busy { refresh() } }
+    var serviceSetupDetail: String {
+#if APP_STORE
+        "Allow Contacts when macOS asks so Beepster can show names. Set up service starts the bundled gateway while this Connector is running and checks your Beeper connection."
+#else
+        "Allow Contacts when macOS asks so Beepster can show names. Set up service installs the bundled service and checks your Beeper connection."
+#endif
+    }
     func repairService() { installBackgroundService() }
     func editToken() { setBeeperToken() }
     func allowContacts() { enableContacts() }
     func repairRoute() { startPrivateRoute() }
     func openBeeper() { openBeeperDesktop() }
     func privacySettings() { openPrivacySettings() }
+    var attachmentSetupDetail: String {
+#if APP_STORE
+        return "Choose the Messages attachments folder to allow access to photos and GIFs. The Connector remembers this folder and checks access through its running service. macOS may also require privacy permission for protected attachments."
+#else
+        return "macOS protects attachments stored by Messages. To view them, grant Full Disk Access to Beepster’s background service. Allow access opens System Settings and selects the service file in Finder; drag that node file into the Full Disk Access list and turn it on."
+#endif
+    }
     func openMediaAccessSettings() {
+#if APP_STORE
+        if storeAgents.chooseAttachments() {
+            mediaAccessMessage = "Attachments folder access saved. Restart and recheck to verify the running service."
+            checkMediaAccess(restart: true)
+        } else { mediaAccessMessage = storeAgents.message }
+#else
         let node = supportDirectory.appendingPathComponent("bin/node")
         guard FileManager.default.fileExists(atPath: node.path) else {
             mediaAccessMessage = "Choose Set up service first, then allow Messages attachment access."
@@ -44,6 +152,7 @@ final class BeepsterModule: NSObject, ObservableObject {
             NSWorkspace.shared.open(url)
         }
         mediaAccessMessage = "Drag the selected node file into Full Disk Access and turn it on. Then choose Restart and recheck."
+#endif
     }
     func checkMediaAccess(restart: Bool = false) {
         guard !mediaAccessBusy else { return }
@@ -52,7 +161,7 @@ final class BeepsterModule: NSObject, ObservableObject {
         Task { @MainActor in
             do {
                 if restart {
-                    let result = await Task.detached { self.run("/bin/launchctl", ["kickstart", "-k", "gui/\(getuid())/org.beepster.gateway"]) }.value
+                    let result = await Task.detached { self.restartGateway() }.value
                     guard result.0 == 0 else { throw ConnectorError(message: "Could not restart Beepster. Choose Set up service and try again.") }
                     try await Task.sleep(nanoseconds: 700_000_000)
                 }
@@ -72,11 +181,12 @@ final class BeepsterModule: NSObject, ObservableObject {
         switch result["code"] as? String {
         case "READY": self.mediaAccessMessage = "Messages attachment folder is accessible. Open the photo or GIF again on your watch."
         case "MEDIA_PERMISSION": self.mediaAccessMessage = "Messages attachment access is blocked. Allow the selected Beepster service in Full Disk Access, then restart and recheck."
+        case "SETUP_REQUIRED": self.mediaAccessMessage = "Choose the Messages attachments folder, then restart and recheck."
         case "NO_LOCAL_ATTACHMENTS": self.mediaAccessMessage = "No local Messages attachment folder was found. No access change is needed unless you use Messages attachments."
         case "NOT_APPLICABLE": self.mediaAccessMessage = "Messages attachment access is not required on this system."
         default: self.mediaAccessMessage = "Attachment access could not be determined. Try checking again."
         }
-        mediaAccessRequirement = ConnectorRequirement("attachments", "Full Disk Access for attachments", result["code"] as? String == "READY" && result["allowed"] as? Bool == true, mediaAccessMessage)
+        mediaAccessRequirement = ConnectorRequirement("attachments", ConnectorLabels.attachments, result["code"] as? String == "READY" && result["allowed"] as? Bool == true, mediaAccessMessage)
         if let index = requirements.firstIndex(where: { $0.id == "attachments" }) { requirements[index] = mediaAccessRequirement }
         else { requirements.append(mediaAccessRequirement) }
     }
@@ -360,6 +470,16 @@ final class BeepsterModule: NSObject, ObservableObject {
         // launches it without TERM, even for noninteractive JSON commands.
         // LaunchServices normally omits TERM, so provide a neutral value.
         if environment["TERM"] == nil { environment["TERM"] = "dumb" }
+#if APP_STORE
+        if executable == currentNodeResource()?.path {
+            environment.merge(storeAgents.environment()) { _, new in new }
+            // Short-lived setup/health commands need the same bundled secret
+            // transport as the owned gateway; Store installs no bin helper.
+            if let helper = bundledResource("beepster-keychain") {
+                environment["BEEPSTER_KEYCHAIN_HELPER"] = helper.path
+            }
+        }
+#endif
         process.environment = environment
         if let spool {
             process.standardOutput = spool
@@ -470,15 +590,56 @@ final class BeepsterModule: NSObject, ObservableObject {
     }
 
     private func ensureSecret(_ account: String, value: @autoclosure () -> String?) -> Bool {
-        let helper = supportDirectory.appendingPathComponent("bin/beepster-keychain").path
+#if APP_STORE
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "org.beepster.gateway", kSecAttrAccount as String: account,
+            kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
+        var item: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecSuccess { return true }
+        // An inaccessible existing credential is not a missing credential.
+        // Never replace phone pairing because authorization has not completed.
+        guard status == errSecItemNotFound, let secret = value() else { return false }
+        var add = query
+        add.removeValue(forKey: kSecReturnData as String); add.removeValue(forKey: kSecMatchLimit as String)
+        add[kSecValueData as String] = Data(secret.utf8)
+        return SecItemAdd(add as CFDictionary, nil) == errSecSuccess
+#else
+        let helper = keychainHelperPath()
         // The first read may wait while macOS presents a Keychain authorization
         // dialog. Let that request finish so we never orphan the dialog.
         if run(helper, ["get", account], timeout: nil).0 == 0 { return true }
         guard let secret = value(), !secret.isEmpty else { return false }
         return run(helper, ["set", account], input: secret, timeout: nil).0 == 0
+#endif
     }
 
     fileprivate func installBundledService() -> (Bool, String) {
+#if APP_STORE
+        let known = !bundledRuntime.isRunning && knownLegacyService()
+        if !bundledRuntime.isRunning && (known || LegacyGatewayHandoff.portIsOccupied()) {
+            let conflict = known ? "The previous Beepster service is running. Choose Switch service below to preserve pairing and use this Connector." : "Another service is using port 8794. Quit its owning app before starting this Connector's service; nothing was stopped."
+            DispatchQueue.main.async { self.legacyServiceDetected = known; self.serviceConflictMessage = conflict }
+            return (false, conflict)
+        }
+        DispatchQueue.main.async { self.legacyServiceDetected = false; self.serviceConflictMessage = "" }
+        guard let node = currentNodeResource(), let gateway = bundledResource("gateway"),
+              let keychain = bundledResource("beepster-keychain"), let contacts = bundledResource("Beepster Contacts.app") else {
+            return (false, "The bundled Beepster service is missing.")
+        }
+        guard ensureSecret("gateway-token", value: randomHex(byteCount: 32)),
+              ensureSecret("pairing-code", value: String(Int.random(in: 100000...999999))) else {
+            return (false, "Could not access the Beepster pairing credentials.")
+        }
+        do {
+            try bundledRuntime.start(executable: node, arguments: [gateway.appendingPathComponent("src/cli.js").path],
+                                     workingDirectory: gateway, environment: [
+                "BEEPSTER_PORT": "8794", "BEEPSTER_HOST": "127.0.0.1",
+                "BEEPSTER_KEYCHAIN_HELPER": keychain.path,
+                "BEEPSTER_CONTACT_HELPER": Bundle(url: contacts)?.executableURL?.path ?? contacts.path].merging(storeAgents.environment()) { _, new in new })
+            return (true, "Beepster runs while the Connector is open. Start at login is controlled in Settings.")
+        } catch { return (false, error.localizedDescription) }
+#else
         let manager = FileManager.default
         guard let node = currentNodeResource(),
               let gateway = bundledResource("gateway"),
@@ -548,6 +709,7 @@ final class BeepsterModule: NSObject, ObservableObject {
         } catch {
             return (false, error.localizedDescription)
         }
+#endif
     }
 
     private func replaceInstalledItem(_ source: URL, at destination: URL) throws {
@@ -573,6 +735,16 @@ final class BeepsterModule: NSObject, ObservableObject {
     }
 
     private func contactsAuthorization() -> String {
+#if APP_STORE
+        let status = CNContactStore.authorizationStatus(for: .contacts)
+        switch status {
+        case .authorized: return "authorized"
+        case .denied: return "denied"
+        case .restricted: return "restricted"
+        case .notDetermined: return "not_determined"
+        @unknown default: return "unknown"
+        }
+#else
         let helper = contactsHelperPath()
         guard FileManager.default.fileExists(atPath: helper) else { return "helper_missing" }
         let statusFile = FileManager.default.temporaryDirectory
@@ -589,6 +761,7 @@ final class BeepsterModule: NSObject, ObservableObject {
             Thread.sleep(forTimeInterval: 0.05)
         }
         return "unknown"
+#endif
     }
 
     private func gatewayHealth() -> (Bool, String) {
@@ -683,6 +856,11 @@ final class BeepsterModule: NSObject, ObservableObject {
             ConnectorRequirement("beeper", "Beeper connection", checks.gateway.0, checks.gateway.1),
             ConnectorRequirement("route", "Private connection", checks.route.0, checks.route.1),
             mediaAccessRequirement]
+#if APP_STORE
+        if !serviceConflictMessage.isEmpty {
+            requirements.append(ConnectorRequirement("service-owner", "Connector service", false, serviceConflictMessage))
+        }
+#endif
         setStatus(contactStatus, ok: contactsOK, name: "Contact names",
                   detail: contactsOK ? "enabled" : "permission needs attention")
         setStatus(gatewayStatus, ok: checks.gateway.0, name: "Beeper connection", detail: checks.gateway.1)
@@ -694,10 +872,14 @@ final class BeepsterModule: NSObject, ObservableObject {
     }
 
     @objc private func refresh() {
+#if APP_STORE
+        guard !startingOwnedService else { return }
+#endif
         guard !checking, !busy else { return }
         checking = true
         let revision = actionRevision
         DispatchQueue.global(qos: .userInitiated).async {
+#if !APP_STORE
             if !self.checkedManagedGateway {
                 self.checkedManagedGateway = true
                 // Upgrade only this already-installed managed service; retain its
@@ -709,10 +891,11 @@ final class BeepsterModule: NSObject, ObservableObject {
                    FileManager.default.fileExists(atPath:self.launchAgentURL.path), let bundled = self.bundledResource("gateway") {
                     do {
                         try self.replaceInstalledItem(bundled, at:self.supportDirectory.appendingPathComponent("gateway"))
-                        _ = self.run("/bin/launchctl", ["kickstart", "-k", "gui/\(getuid())/org.beepster.gateway"])
+                        _ = self.restartGateway()
                     } catch { /* Readiness remains failed and offers an explicit repair. */ }
                 }
             }
+#endif
             let checks = self.performChecks()
             let openClaw = self.openClawApprovalHealth()
             var bridgeHealth: [AgentBridgeHealth]?
@@ -745,7 +928,7 @@ final class BeepsterModule: NSObject, ObservableObject {
             setWorking(true, message: "Disabling OpenClaw approvals…")
             DispatchQueue.global(qos: .userInitiated).async {
                 _ = self.run(self.keychainHelperPath(), ["set", "openclaw-enabled"], input: "disabled", timeout: nil)
-                _ = self.run("/bin/launchctl", ["kickstart", "-k", "gui/\(getuid())/org.beepster.gateway"])
+                _ = self.restartGateway()
                 DispatchQueue.main.async {
                     self.setOptionalStatus(self.openClawStatus, state: "disabled", detail: "off")
                     self.setWorking(false, message: "OpenClaw approvals are off")
@@ -771,7 +954,7 @@ final class BeepsterModule: NSObject, ObservableObject {
                 return
             }
             let stored = self.run(self.keychainHelperPath(), ["set", "openclaw-enabled"], input: "enabled", timeout: nil)
-            _ = self.run("/bin/launchctl", ["kickstart", "-k", "gui/\(getuid())/org.beepster.gateway"])
+            _ = self.restartGateway()
             let deadline = Date().addingTimeInterval(10)
             var health = self.openClawApprovalHealth()
             while health.0 != "paired" && Date() < deadline {
@@ -832,7 +1015,7 @@ final class BeepsterModule: NSObject, ObservableObject {
         alert.addButton(withTitle: "Skip for Now")
         let (view, field) = beeperTokenAccessory()
         alert.accessoryView = view
-        window.makeFirstResponder(field)
+        alert.window.initialFirstResponder = field
         guard alert.runModal() == .alertFirstButtonReturn else { return nil }
         let token = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         field.stringValue = ""
@@ -849,7 +1032,7 @@ final class BeepsterModule: NSObject, ObservableObject {
 
             var contacts = self.contactsAuthorization()
             if contacts == "not_determined" {
-                _ = self.run("/usr/bin/open", ["-W", "-n", self.contactsHelperPath()], timeout: nil)
+                self.requestContactsAccess()
                 contacts = self.contactsAuthorization()
             }
 
@@ -863,7 +1046,7 @@ final class BeepsterModule: NSObject, ObservableObject {
                 tailscaleReady = self.tailscaleHealth().0
             }
 
-            _ = self.run("/bin/launchctl", ["kickstart", "-k", "gui/\(getuid())/org.beepster.gateway"])
+            _ = self.restartGateway()
             let deadline = Date().addingTimeInterval(8)
             var gateway = self.beeperConnectionHealth()
             while !gateway.0 && Date() < deadline {
@@ -898,12 +1081,22 @@ final class BeepsterModule: NSObject, ObservableObject {
         }
     }
 
+    private func requestContactsAccess() {
+#if APP_STORE
+        // Called only from setup's worker queue. The consent sheet belongs to
+        // the Connector; lookup tools inherit its sandbox and privacy context.
+        let completed = DispatchSemaphore(value: 0)
+        DispatchQueue.main.async {
+            CNContactStore().requestAccess(for: .contacts) { _, _ in completed.signal() }
+        }
+        completed.wait()
+#else
+        _ = run("/usr/bin/open", ["-W", "-n", contactsHelperPath()], timeout: nil)
+#endif
+    }
     @objc private func enableContacts() {
-        let helper = contactsHelperPath()
         DispatchQueue.global(qos: .userInitiated).async {
-            // This helper now runs an AppKit lifecycle, so -W reliably waits
-            // for the user to finish the macOS permission sheet.
-            _ = self.run("/usr/bin/open", ["-W", "-n", helper], timeout: nil)
+            self.requestContactsAccess()
             DispatchQueue.main.async { self.refresh() }
         }
     }
@@ -930,12 +1123,12 @@ final class BeepsterModule: NSObject, ObservableObject {
     @objc private func setBeeperToken() {
         let alert = NSAlert()
         alert.messageText = "Set dedicated Beeper token"
-        alert.informativeText = "Follow these steps in Beeper Desktop, then paste the new token below."
+        alert.informativeText = "App updates keep your saved token. Replace it here only if you need to reconnect Beeper. Cancel keeps the current token."
         alert.addButton(withTitle: "Save Token")
         alert.addButton(withTitle: "Cancel")
         let (view, field) = beeperTokenAccessory()
         alert.accessoryView = view
-        window.makeFirstResponder(field)
+        alert.window.initialFirstResponder = field
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         let token = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         field.stringValue = ""
@@ -943,7 +1136,7 @@ final class BeepsterModule: NSObject, ObservableObject {
         let keychain = keychainHelperPath()
         DispatchQueue.global(qos: .userInitiated).async {
             let stored = self.run(keychain, ["set", "beeper-access-token"], input: token, timeout: nil)
-            _ = self.run("/bin/launchctl", ["kickstart", "-k", "gui/\(getuid())/org.beepster.gateway"])
+            _ = self.restartGateway()
             DispatchQueue.main.async {
                 if stored.0 != 0 {
                     let failure = NSAlert()
@@ -980,14 +1173,44 @@ final class BeepsterModule: NSObject, ObservableObject {
         let field = NSSecureTextField()
         field.placeholderString = "Paste Beeper Desktop API token"
 
-        let stack = NSStackView(views: [instructions, openBeeper, pasteLabel, field])
+        // NSAlert sizes its accessory from its frame. A zero-frame stack with
+        // Auto Layout disabled at the alert boundary overlaps the alert text.
+        let width: CGFloat = 440
+        let accessory = NSView(frame: NSRect(x: 0, y: 0, width: width, height: 360))
+        let scroll = NSScrollView()
+        scroll.hasVerticalScroller = true
+        scroll.borderType = .noBorder
+        scroll.drawsBackground = false
+        let text = NSTextView(frame: NSRect(x: 0, y: 0, width: width, height: 230))
+        text.string = instructions.stringValue
+        text.font = .systemFont(ofSize: 13)
+        text.textColor = .labelColor
+        text.isEditable = false
+        text.drawsBackground = false
+        text.isHorizontallyResizable = false
+        text.isVerticallyResizable = true
+        text.autoresizingMask = [.width]
+        text.textContainerInset = NSSize(width: 0, height: 4)
+        text.textContainer?.widthTracksTextView = true
+        scroll.documentView = text
+        let stack = NSStackView(views: [scroll, openBeeper, pasteLabel, field])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
-        instructions.widthAnchor.constraint(equalToConstant: 470).isActive = true
-        field.widthAnchor.constraint(equalToConstant: 470).isActive = true
-        return (stack, field)
+        accessory.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: accessory.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: accessory.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: accessory.topAnchor),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: accessory.bottomAnchor),
+            scroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            scroll.heightAnchor.constraint(equalToConstant: 230),
+            field.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            field.heightAnchor.constraint(equalToConstant: 24)
+        ])
+        accessory.layoutSubtreeIfNeeded()
+        return (accessory, field)
     }
 
     @objc private func openBeeperDesktop() {

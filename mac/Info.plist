@@ -1,23 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>CFBundleExecutable</key><string>organik-pebble-connector</string>
-<key>CFBundleIdentifier</key><string>org.organikapps.pebbleconnector</string>
-<key>CFBundleName</key><string>Organik Apps Pebble Connector</string>
-<key>CFBundleDisplayName</key><string>Organik Apps Pebble Connector</string>
-<key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.8.7</string>
-<key>CFBundleVersion</key><string>26</string>
-<key>CFBundleIconFile</key><string>Organik</string>
-<key>LSMinimumSystemVersion</key><string>14.0</string>
-<key>NSHighResolutionCapable</key><true/>
-<key>NSRemindersFullAccessUsageDescription</key><string>Enable Reminderz to read, create, complete, and delete your reminders from your Pebble.</string>
-<key>NSRemindersUsageDescription</key><string>Enable Reminderz to sync Apple Reminders with your Pebble.</string>
-<key>SUFeedURL</key><string>https://github.com/GeezusChrotch/organik-pebble-connector/releases/latest/download/appcast.xml</string>
-<key>SUPublicEDKey</key><string>hzYvieHRAA5asSXN67G5ohbg/Y3ljMihgnbFEKaiPHk=</string>
-<key>SUEnableAutomaticChecks</key><true/>
-<key>SUScheduledCheckInterval</key><integer>86400</integer>
-<key>SUAutomaticallyUpdate</key><false/>
-<key>SUAllowsAutomaticUpdates</key><false/>
-<key>SUSendProfileInfo</key><false/>
-</dict></plist>
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Organik Apps Pebble Connector</string>
+	<key>CFBundleExecutable</key>
+	<string>organik-pebble-connector</string>
+	<key>CFBundleIconFile</key>
+	<string>Organik</string>
+	<key>CFBundleIdentifier</key>
+	<string>org.organikapps.pebbleconnector</string>
+	<key>CFBundleName</key>
+	<string>Organik Apps Pebble Connector</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.9.0</string>
+	<key>CFBundleVersion</key>
+	<string>31</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHomeKitUsageDescription</key>
+	<string>Connect the HomeKit cameras you enable in Pome. Requested camera images are prepared locally for your watch and kept only in memory.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Enable Reminderz to read, create, complete, and delete your reminders from your Pebble.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Enable Reminderz to sync Apple Reminders with your Pebble.</string>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/GeezusChrotch/organik-pebble-connector/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>hzYvieHRAA5asSXN67G5ohbg/Y3ljMihgnbFEKaiPHk=</string>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SUSendProfileInfo</key>
+	<false/>
+	<key>NSContactsUsageDescription</key>
+	<string>Show contact names in Beepster chats on your Pebble.</string>
+</dict>
+</plist>

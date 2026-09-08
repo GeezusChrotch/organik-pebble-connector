@@ -1,0 +1,15 @@
+// !$*UTF8*$!
+{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {
+A00000000000000000000001 = {isa = PBXProject; attributes = {TargetAttributes = {A00000000000000000000005 = {SystemCapabilities = {com.apple.ApplicationGroups.Mac = {enabled = 1;}; com.apple.Sandbox = {enabled = 1;};};};};}; buildConfigurationList = A00000000000000000000002; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; knownRegions = (en,Base); mainGroup = A00000000000000000000003; productRefGroup = A00000000000000000000004; projectDirPath = ""; projectRoot = ""; targets = (A00000000000000000000005);};
+A00000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000006); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug;};
+A00000000000000000000003 = {isa = PBXGroup; children = (A00000000000000000000007,A00000000000000000000004); sourceTree = "<group>";};
+A00000000000000000000004 = {isa = PBXGroup; children = (A00000000000000000000008); name = Products; sourceTree = "<group>";};
+A00000000000000000000005 = {isa = PBXNativeTarget; buildConfigurationList = A00000000000000000000009; buildPhases = (A0000000000000000000000A); buildRules = (); dependencies = (); name = CameraGroupProbe; productName = CameraGroupProbe; productReference = A00000000000000000000008; productType = "com.apple.product-type.application";};
+A00000000000000000000006 = {isa = XCBuildConfiguration; buildSettings = {SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 15.0; SWIFT_VERSION = 5.0;}; name = Debug;};
+A00000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Probe.swift; sourceTree = "<group>";};
+A00000000000000000000008 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CameraGroupProbe.app; sourceTree = BUILT_PRODUCTS_DIR;};
+A00000000000000000000009 = {isa = XCConfigurationList; buildConfigurations = (A0000000000000000000000B); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug;};
+A0000000000000000000000A = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A0000000000000000000000C); runOnlyForDeploymentPostprocessing = 0;};
+A0000000000000000000000B = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Manual; PROVISIONING_PROFILE_SPECIFIER = "Pome Cameras Catalyst App Group Development 20260908"; SUPPORTS_MACCATALYST = YES; TARGETED_DEVICE_FAMILY = "1,2"; DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER = NO; CODE_SIGN_ENTITLEMENTS = ../../mac/AppStore/Camera.entitlements; DEVELOPMENT_TEAM = 4N9LJD597R; CODE_SIGN_IDENTITY = "Apple Development"; ENABLE_APP_SANDBOX = YES; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = Info.plist; PRODUCT_BUNDLE_IDENTIFIER = com.organikapps.pome.camera-probe; PRODUCT_NAME = "$(TARGET_NAME)"; SWIFT_VERSION = 5.0;}; name = Debug;};
+A0000000000000000000000C = {isa = PBXBuildFile; fileRef = A00000000000000000000007;};
+}; rootObject = A00000000000000000000001; }

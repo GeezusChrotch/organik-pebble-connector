@@ -1,5 +1,9 @@
 # Organik Apps Pebble Connector
 
+For the upcoming Mac App Store 1.0 build, see [Store setup](STORE-SETUP.md) and [Privacy](PRIVACY.md). Store 1.0 is not publicly released yet.
+
+## Historical DMG release: 0.8.7
+
 One Mac app for **Notesy, Beepster, Reminderz, and Pome**. Version 0.8.7 requires macOS 14 or newer.
 
 Drag the app into Applications and open it. Use the sidebar to select an app. Each connector has the same three sections: **Setup**, **Requirements**, and **Troubleshooting**. Follow the numbered Setup steps from top to bottom, then use Check connection to refresh its requirements.

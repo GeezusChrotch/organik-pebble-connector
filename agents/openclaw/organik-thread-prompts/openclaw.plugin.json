@@ -1,0 +1,1 @@
+{"id":"organik-thread-prompts","name":"Organik thread prompts","description":"User-written system instructions scoped to explicitly linked sessions","configSchema":{"type":"object","additionalProperties":false,"properties":{}}}

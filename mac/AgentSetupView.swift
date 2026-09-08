@@ -56,6 +56,10 @@ struct AgentSetupView: View {
             ForEach(module.agentState?.states ?? [], id: \.self) { Text($0).font(.callout).foregroundStyle(.secondary) }
             GroupBox("OpenClaw") {
                 VStack(alignment:.leading,spacing:8) {
+#if APP_STORE
+                    StoreAgentConnectionView(configuration: module.storeAgents, provider: "openclaw", saved: module.applyStoreAgentConfiguration)
+                    Button("Pair / manage OpenClaw access") { module.optionalApprovals() }
+#else
                     Text("Pair this Mac's approval-only access, then choose an agent session and its matching Telegram chat below. Review any device request in OpenClaw. Existing local Telegram sessions are discovered automatically.")
                     Button("Pair / manage OpenClaw access") { module.optionalApprovals() }
                     Button("Install / update OpenClaw thread prompts") { confirmPromptSupport = true }
@@ -65,11 +69,15 @@ struct AgentSetupView: View {
                             Button("Enable Telegram approval text") { confirmOpenClaw = true }
                         }
                     }
+#endif
                     AgentLinkSection(module: module, provider: "openclaw", title: "OpenClaw")
                 }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
             }
             GroupBox("Hermes") {
                 VStack(alignment:.leading,spacing:8) {
+#if APP_STORE
+                    StoreAgentConnectionView(configuration: module.storeAgents, provider: "hermes", saved: module.applyStoreAgentConfiguration)
+#else
                     if module.agentState?.hermesEnabled == true {
                         Button("Update Hermes bridge for thread prompts") { confirmInstall = true }
                         Label("Bridge installed and enabled",systemImage:"checkmark.circle.fill").foregroundStyle(.green)
@@ -78,6 +86,7 @@ struct AgentSetupView: View {
                         Text("Install the optional bridge for the default local Hermes installation. No agent will be restarted and no approval will be sent.")
                         Button("Install / enable Hermes bridge") { confirmInstall = true }
                     }
+#endif
                     AgentLinkSection(module: module, provider: "hermes", title: "Hermes")
                 }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
             }
@@ -203,3 +212,26 @@ struct ThreadPromptEditor: View {
         }
     }
 }
+
+#if APP_STORE
+private struct StoreAgentConnectionView: View {
+    @ObservedObject var configuration: StoreAgentConfiguration
+    let provider: String
+    let saved: () -> Void
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if provider == "openclaw" {
+                Text("Choose OpenClaw’s data folder to discover Telegram sessions. Install or update its Connector thread-prompt plugin in OpenClaw and enable the plugin’s Store-file prompt mode to apply the prompts you edit below.")
+                Text(configuration.openClawFolder).font(.callout).foregroundStyle(.secondary)
+                Button("Choose OpenClaw data folder…") { if configuration.chooseOpenClaw() { saved() } }
+            } else {
+                Text("Enable the Connector bridge in Hermes, then enter its local address and token. Sessions, prompts and approvals use this connection.")
+                TextField("Hermes bridge address", text: $configuration.hermesURL)
+                SecureField("Bridge token", text: $configuration.tokenInput)
+                Button("Save Hermes connection") { if configuration.saveHermes() { saved() } }
+            }
+            Text(configuration.message).font(.callout).foregroundStyle(.secondary)
+        }
+    }
+}
+#endif

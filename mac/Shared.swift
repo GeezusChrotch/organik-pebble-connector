@@ -13,17 +13,27 @@ func scrollingDocument(_ content: NSView) -> NSView {
     content.heightAnchor.constraint(greaterThanOrEqualTo: scroll.contentView.heightAnchor).isActive = true
     return scroll
 }
-func runCommand(_ executable: String, _ arguments: [String], timeout: Double = 12) -> (Int32, String) {
+func runCommand(_ executable: String, _ arguments: [String], timeout: Double = 12, discardStandardError: Bool = false) -> (Int32, String) {
     let process = Process(), pipe = Pipe()
     process.executableURL = URL(fileURLWithPath: executable)
     process.arguments = arguments
-    process.standardOutput = pipe; process.standardError = pipe
+    process.environment = commandEnvironment(executable: executable, inherited: ProcessInfo.processInfo.environment)
+    process.standardOutput = pipe; process.standardError = discardStandardError ? FileHandle.nullDevice : pipe
     process.standardInput = FileHandle.nullDevice
     do { try process.run() } catch { return (-1, error.localizedDescription) }
     DispatchQueue.global().asyncAfter(deadline: .now()+timeout) { if process.isRunning { process.terminate() } }
     let output = pipe.fileHandleForReading.readDataToEndOfFile()
     process.waitUntilExit()
     return (process.terminationStatus, String(decoding: output, as: UTF8.self))
+}
+func commandEnvironment(executable: String, inherited: [String: String]) -> [String: String] {
+    var environment = inherited
+    // The macOS Tailscale executable selects GUI or CLI mode from terminal
+    // environment variables. Finder/login launches do not supply TERM.
+    if URL(fileURLWithPath: executable).lastPathComponent.lowercased() == "tailscale", environment["TERM"]?.isEmpty != false {
+        environment["TERM"] = "dumb"
+    }
+    return environment
 }
 enum PrivateConnection {
     enum Plan: Equatable { case reuse(String); case create(Int) }
@@ -32,10 +42,28 @@ enum PrivateConnection {
     }
     static func configuration() throws -> [String: Any] {
         guard let binary = executable else { throw ConnectorError(message: "Install Tailscale on your Mac and phone, and sign into the same account.") }
-        let result = runCommand(binary, ["serve", "status", "--json"])
+        let started = Date()
+        let result = runCommand(binary, ["serve", "status", "--json"], discardStandardError: true)
+        var diagnostic: [String: Any] = ["exitStatus": result.0, "stdoutBytes": result.1.utf8.count, "seconds": Date().timeIntervalSince(started)]
+        defer {
+            let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Organik Apps Pebble Connector")
+            if let data = try? JSONSerialization.data(withJSONObject: diagnostic) {
+                try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                let file = folder.appendingPathComponent("PrivateRouteCheck.json")
+                try? data.write(to: file, options: .atomic)
+                try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+            }
+        }
         guard result.0 == 0, let data = result.1.data(using: .utf8) else { throw ConnectorError(message: "Tailscale is not ready. Open it and check your connection.") }
-        let parsed = try JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)
-        return parsed as? [String: Any] ?? [:]
+        do {
+            let parsed = try JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)
+            let configuration = parsed as? [String: Any] ?? [:]
+            diagnostic["webEntries"] = (configuration["Web"] as? [String: Any])?.count ?? 0
+            return configuration
+        } catch {
+            diagnostic["parseError"] = (error as NSError).code
+            throw error
+        }
     }
     static func origin(target: String, configuration: [String: Any]) -> String? {
         let web = configuration["Web"] as? [String: Any] ?? [:]

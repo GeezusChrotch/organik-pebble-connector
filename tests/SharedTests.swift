@@ -1,6 +1,9 @@
 import Foundation
 @main struct SharedTests {
     static func main() throws {
+        assert(commandEnvironment(executable: "/Applications/Tailscale.app/Contents/MacOS/Tailscale", inherited: [:])["TERM"] == "dumb")
+        assert(commandEnvironment(executable: "/usr/local/bin/tailscale", inherited: ["TERM": "xterm"])["TERM"] == "xterm")
+        assert(commandEnvironment(executable: "/usr/bin/other", inherited: [:])["TERM"] == nil)
         let target="http://127.0.0.1:7844"
         let existing:[String:Any] = ["Web":["sample.ts.net:12448":["Handlers":["/":["Proxy":target]]]]]
         let reuse=try PrivateConnection.plan(target:target,port:10448,configuration:existing)

@@ -1,0 +1,27 @@
+[
+  {
+    "file": "agents/hermes/beepster/__init__.py",
+    "upstreamCommit": "870cd019bedcc0f7084a9aa97aa4e63eaf97fda8",
+    "sha256": "13131fc58e2d379f000d9e4d550cf6c82688d15878b2ebec3d2805a13c35f2cc"
+  },
+  {
+    "file": "agents/hermes/beepster/plugin.yaml",
+    "upstreamCommit": "870cd019bedcc0f7084a9aa97aa4e63eaf97fda8",
+    "sha256": "55321225427ab1b0074fd586155976d495f839ef72f718992f0370b8dee66f63"
+  },
+  {
+    "file": "agents/openclaw/organik-thread-prompts/index.js",
+    "upstreamCommit": "9a1521c2ff20ee4696a325fef52f4cff6807491f",
+    "sha256": "fa1a226f779897dd63297292b211270ef2f23afccb2f2f6ee742c4ad6f2af4c4"
+  },
+  {
+    "file": "agents/openclaw/organik-thread-prompts/openclaw.plugin.json",
+    "upstreamCommit": "9a1521c2ff20ee4696a325fef52f4cff6807491f",
+    "sha256": "0a0e6372531b5e986923067d6589111e40a31dc6b4c0b8d1f42d28daae114f39"
+  },
+  {
+    "file": "agents/openclaw/organik-thread-prompts/package.json",
+    "upstreamCommit": "9a1521c2ff20ee4696a325fef52f4cff6807491f",
+    "sha256": "63c5edfa743eeed71fd62076ceaf763dc7542d80543dbd48fc2830be45999d15"
+  }
+]

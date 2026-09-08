@@ -1,5 +1,23 @@
 import Foundation
 import Combine
+#if APP_STORE
+import AppKit
+
+@MainActor final class ConnectorUpdater: ObservableObject {
+    let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development"
+    let usesAppStore = true
+    @Published var canCheck = true
+    @Published var status = "Updates are managed by the App Store."
+    // Kept for the shared view model; Store UI never exposes Sparkle preferences.
+    @Published var automatic = true
+    @Published var intervalHours = 24
+    func start() {}
+    func check() {
+        guard let url = URL(string: "macappstore://showUpdatesPage") else { return }
+        NSWorkspace.shared.open(url)
+    }
+}
+#else
 import Sparkle
 
 @MainActor final class ConnectorUpdater: ObservableObject {
@@ -18,6 +36,7 @@ import Sparkle
             controller?.updater.updateCheckInterval = Double(intervalHours) * 3600
         }
     }
+    let usesAppStore = false
     private var controller: SPUStandardUpdaterController?
     private var subscriptions = Set<AnyCancellable>()
     func start() {
@@ -39,3 +58,5 @@ import Sparkle
     }
     func check() { controller?.checkForUpdates(nil) }
 }
+
+#endif

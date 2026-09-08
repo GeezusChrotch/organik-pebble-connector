@@ -33,8 +33,21 @@ struct ConnectorRequirement: Identifiable {
     let title: String
     let ready: Bool
     let detail: String
-    init(_ id: String, _ title: String, _ ready: Bool, _ detail: String) {
+    let checking: Bool
+    init(_ id: String, _ title: String, _ ready: Bool, _ detail: String, checking: Bool = false) {
         self.id = id; self.title = title; self.ready = ready; self.detail = detail
+        self.checking = checking || (!ready && detail == "Not checked")
+    }
+    func pending(_ pending: Bool) -> Self { Self(id, title, ready, detail, checking: pending) }
+}
+
+enum ConnectorLabels {
+    static var attachments: String {
+#if APP_STORE
+        "Attachment folder access"
+#else
+        "Full Disk Access for attachments"
+#endif
     }
 }
 

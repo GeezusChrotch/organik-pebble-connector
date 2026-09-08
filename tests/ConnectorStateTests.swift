@@ -2,6 +2,9 @@ import Foundation
 
 @main struct ConnectorStateTests {
     static func main() {
+        assert(ConnectorRequirement("service", "Service", false, "Not checked").checking)
+        assert(!ConnectorRequirement("service", "Service", false, "Connection refused").checking)
+        assert(!ConnectorRequirement("service", "Service", true, "Ready").checking)
         let suite = "org.organikapps.visibility-tests." + UUID().uuidString
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
