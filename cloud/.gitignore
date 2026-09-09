@@ -1,0 +1,8 @@
+.ci-build/
+Resources/Beepster/node-arm64
+Resources/Beepster/node-x64
+Resources/Beepster/beepster-keychain
+Resources/Beepster/Beepster Contacts.app/Contents/MacOS/
+Resources/Beepster/gateway/node_modules/
+Resources/Notesy/renderer/notesy-image-helper
+**/xcuserdata/

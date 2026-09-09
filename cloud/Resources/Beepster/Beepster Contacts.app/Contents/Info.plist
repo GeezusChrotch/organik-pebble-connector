@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>org.beepster.contacts</string>
+  <key>CFBundleExecutable</key>
+  <string>beepster-contacts</string>
+  <key>CFBundleName</key>
+  <string>Beepster Contacts</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>1.0</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>NSContactsUsageDescription</key>
+  <string>Beepster uses read-only contact matching to show names for Apple message participants.</string>
+  <key>LSUIElement</key>
+  <true/>
+</dict>
+</plist>

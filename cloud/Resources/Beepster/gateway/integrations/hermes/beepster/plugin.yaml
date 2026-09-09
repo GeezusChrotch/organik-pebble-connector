@@ -1,0 +1,8 @@
+name: beepster
+version: 0.5.0
+description: Optional local Beepster scoped approval bridge with authenticated Store transport
+author: Organik Apps
+kind: standalone
+provides_hooks:
+  - pre_approval_request
+  - pre_gateway_dispatch
