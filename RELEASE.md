@@ -1,20 +1,12 @@
-# Organik Apps Pebble Connector 0.8.7
+# Organik Apps Pebble Connector 1.0 — release candidate
 
-## What’s new
+Not yet publicly available. This replaces the earlier submitted candidate with the accepted direct HomeKit backend and simplified setup.
 
-- Beepster’s overview now includes **Full Disk Access for attachments**, checked by the running service. Setup opens the correct permission page and reveals the service to add; restart and recheck confirms access.
-- Updated Beepster gateway supports reaction names, bounded GIF previews, and YouTube thumbnails, including clearer attachment permission errors.
-- Includes Notesy 1.4.8 with full-width watch media.
-- Background checks keep the interface responsive.
+- Pome connects directly to Apple Home for devices, rooms, scenes and optional cameras. No Itsyhome installation or separate home-control server is required.
+- Each app has three numbered setup steps with an explanation of what is configured and why: connect its source, establish the private phone connection, and pair the phone.
+- Notesy starts after vault selection. Beepster uses its guided token/Contacts/service setup. Optional attachments, cameras and agent links are separate from the main setup; repairs are in Troubleshooting.
+- Pome home controls and cameras reuse one private URL/token. Camera pause keeps home controls available. Closing Connector's window preserves services; Quit stops them.
 
-## Update instructions
+Requires macOS14 or later; optional camera capture requires macOS15.2 or later. Universal Intel/Apple silicon. Watch apps install separately. Tesla stays hidden by default and marked Coming soon.
 
-Install **Connector 0.8.7 first**, then choose **Beepster → Set up service** to update its background gateway. Updating the app alone does not replace that service. Install the matching Beepster 0.20.0 watch update separately. Existing pairing, vault selection, thread prompts and private routes are retained.
-
-For Apple Messages attachments, follow the attachment-access setup and choose **Restart and recheck**. Only confirmed service access turns the light green.
-
-Requires macOS 14 or later; universal Intel/Apple silicon app. Tesla remains hidden by default. Pome’s existing Itsyhome connection is retained; no experimental camera helper is shipped.
-
-## Validation
-
-Native requirement tests cover denied, unknown, missing, ready and revoked attachment access. The installed gateway’s attachment check and a real Messages GIF succeeded locally. The Beepster owner reports 220 tests and clean package/privacy checks; Notesy reports 94 tests and both watch builds. Latest watch media layout has emulator coverage; final physical-watch acceptance remains pending. Publication does not replace the local app or install watch packages.
+The stable Xcode Cloud Store archive uses the accepted local39 source hashes in `cloud/ACCEPTED-SOURCE.json`. Signing, build number and compiler provenance differ from the local development build. Archive validation, Apple review and publication remain pending. Historical release notes are preserved in Git tags.

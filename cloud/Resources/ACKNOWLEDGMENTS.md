@@ -8,7 +8,7 @@ sharing foundations that let small ideas become useful things.
 
 - **Notesy, Beepster, Reminderz, and Pome:** the Organik Apps watch apps and earlier connectors whose setup, pairing, themes, and workflows this app brings together.
 - **[Beeper](https://www.beeper.com/) and its developers:** for Beeper Desktop and its API, which make Beepster’s messaging connection possible.
-- **[Itsyhome](https://itsyhome.app/) and its developers:** for the HomeKit and Webhooks/CLI connection used by Pome.
+- **[Itsyhome](https://itsyhome.app/) and its developers:** for the Webhooks/CLI integration used by earlier Pome versions. Current Pome connects directly through Apple Home.
 - **[Obsidian](https://obsidian.md/) and its community:** for the Markdown vault workflow behind Notesy.
 - **[Excalidraw](https://github.com/excalidraw/excalidraw), [Zsolt Viczian and the Obsidian Excalidraw plugin community](https://github.com/zsviczian/obsidian-excalidraw-plugin):** for drawings, local rendering, and the file formats Notesy can read. The Obsidian plugin itself is not bundled or required.
 - **[React](https://react.dev/), [LZ-String](https://github.com/pieroxy/lz-string), and [esbuild](https://esbuild.github.io/) contributors:** for the Notesy renderer and its build tools.

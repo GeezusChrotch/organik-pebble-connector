@@ -5,7 +5,6 @@ import ServiceManagement
 
 @MainActor final class ConnectorModel: ObservableObject {
     let stone = NotesyService()
-    let pome = ExternalService(name: "Pome", description: "Keep Itsyhome running with its Webhooks/CLI server enabled.", localPort: 8423, privatePort: 10443, healthPath: "/status")
     let cameras = PomeCameraService()
     // Visibility never starts or stops the existing personal gateway.
     let tesla = ExternalService(name: "Tesla", description: "Use your existing Tesla gateway. Developer registration, Tesla sign-in, and the command proxy are managed by that gateway.", localPort: 8793, privatePort: 10449, healthPath: "/health")
@@ -27,7 +26,7 @@ import ServiceManagement
                 DispatchQueue.main.async { self?.scheduleStatusSnapshot() }
             }.store(in: &subscriptions)
         }
-        for service in [stone.objectWillChange, pome.objectWillChange, cameras.objectWillChange, tesla.objectWillChange] {
+        for service in [stone.objectWillChange, cameras.objectWillChange, tesla.objectWillChange] {
             service.sink { [weak self] _ in self?.objectWillChange.send(); self?.scheduleStatusSnapshot() }.store(in: &subscriptions)
         }
         for page in [ConnectorPage.beepster, .reminderz] where UserDefaults.standard.bool(forKey: "enabled." + page.rawValue) { enable(page) }
@@ -64,7 +63,7 @@ import ServiceManagement
         case .stone: return stone.requirements
         case .beepster: return beepster.map { $0.requirements + $0.agentRequirements } ?? unchecked([("contacts", "Contact names"), ("beeper", "Beeper connection"), ("route", "Private connection"), ("attachments", ConnectorLabels.attachments)], page: page)
         case .reminderz: return reminderz?.requirements ?? unchecked([("permission", "Reminders access"), ("service", "Mac service"), ("route", "Private connection")], page: page)
-        case .pome: return pome.requirements + cameras.overviewRequirements
+        case .pome: return cameras.overviewRequirements
         case .tesla: return tesla.requirements
         default: return []
         }
@@ -80,7 +79,7 @@ import ServiceManagement
         if visiblePages.contains(.beepster) { beepster?.checkConnection() }
         if visiblePages.contains(.reminderz) { reminderz?.checkConnection() }
         if visiblePages.contains(.stone) { await stone.refresh() }
-        if visiblePages.contains(.pome) { await pome.check(); await cameras.check() }
+        if visiblePages.contains(.pome) { await cameras.check() }
         if visiblePages.contains(.tesla) { await tesla.check() }
     }
     private var snapshotPending = false
@@ -206,18 +205,18 @@ struct NotesyView: View {
     @ObservedObject var service: NotesyService
     var body: some View {
         ConnectorDetail(page: .stone, requirements: service.requirements, busy: service.busy, message: service.status) {
-            SetupStep(number: 1, title: "Choose your Obsidian vault", detail: "Select the folder containing your Obsidian notes. Notesy uses this vault to browse notes and save watch dictation.") {
+            SetupStep(number: 1, title: "Choose your Obsidian vault", detail: "Choose the folder containing your Obsidian notes. Notesy remembers access to this folder and starts its connection automatically so your watch can browse notes and save dictation.") {
                 if let vault = service.vault { Text(vault.path).font(.caption).textSelection(.enabled) }
                 Button(service.vault == nil ? "Choose vault…" : "Change vault…") { service.chooseVault() }.disabled(service.busy)
+                if service.vault != nil && !service.running {
+                    Button("Start Notesy") { service.start() }.disabled(service.busy)
+                }
             }
-            SetupStep(number: 2, title: "Start Notesy on this Mac", detail: "Keep the Connector running while using Notesy on your watch.") {
-                Button(service.running ? "Service running" : "Start service") { service.start() }.disabled(service.busy || service.vault == nil || service.running)
-            }
-            SetupStep(number: 3, title: "Connect Mac and phone privately", detail: "This lets your phone reach Notesy through Tailscale.") {
+            SetupStep(number: 2, title: "Connect Mac and phone privately", detail: "This lets your phone reach Notesy through Tailscale.") {
                 PrivateSetupHelp()
                 Button(service.privateReady ? "Private connection ready" : "Start private connection") { service.startPrivate() }.disabled(service.busy || !service.running || service.privateReady)
             }
-            SetupStep(number: 4, title: "Pair Notesy on your phone", detail: "Install Notesy on your Pebble first. Open Connect phone, scan the pairing code, and paste the details into Pebble → Notesy → Settings. Test, save, then refresh Notesy on your watch.") {
+            SetupStep(number: 3, title: "Pair Notesy on your phone", detail: "Install Notesy on your Pebble first. Open Connect phone, scan the pairing code, and paste the details into Pebble → Notesy → Settings. Test, save, then refresh Notesy on your watch.") {
                 HStack {
                     Button("Open Notesy watch package") { if let file = Bundle.main.resourceURL?.appendingPathComponent("Notesy/Notesy.pbw") { NSWorkspace.shared.activateFileViewerSelecting([file]) } }
                     Button("Connect phone") { service.connectPhone() }.buttonStyle(.borderedProminent).disabled(service.busy || !service.privateReady)
@@ -226,10 +225,10 @@ struct NotesyView: View {
             }
             Button("Check connection") { Task { await service.refresh() } }.disabled(service.busy)
         } troubleshooting: {
-            Text("Vault unavailable: confirm the folder still exists and choose it again in step 1. Phone cannot connect: check Tailscale on both devices, then repeat step 4. Watch drafts retry while Notesy is active and remain tied to their original vault.")
+            Text("Vault unavailable: confirm the folder still exists and choose it again in step 1. Phone cannot connect: check Tailscale on both devices, then repeat step 3. Watch drafts retry while Notesy is active and remain tied to their original vault.")
             HStack {
                 Button("Open vault") { if let vault = service.vault { NSWorkspace.shared.open(vault) } }.disabled(service.vault == nil)
-                Button("Stop service") { service.stop() }.disabled(service.busy || !service.running)
+                Button(service.running ? "Stop service" : "Start service") { if service.running { service.stop() } else { service.start() } }.disabled(service.busy || service.vault == nil)
                 Button("Repair private connection") { service.startPrivate() }.disabled(service.busy || !service.running)
             }
         }
@@ -241,51 +240,52 @@ struct BeepsterView: View {
     private func ready(_ id: String) -> Bool { module.requirements.first { $0.id == id }?.ready == true }
     var body: some View {
         ConnectorDetail(page: .beepster, requirements: module.requirements, busy: module.busy, message: module.message) {
-            SetupStep(number: 1, title: "Connect Beeper Desktop", detail: "Open Beeper Desktop and sign in. In Beeper Settings → Beeper Desktop API, enable Allow connections and create a token for Beepster. Paste that token using Set Beeper token.") {
-                HStack {
-                    Button("Open Beeper Desktop") { module.openBeeper() }
-                    Button("Set Beeper token") { module.editToken() }
-                }.disabled(module.busy)
-            }
-            SetupStep(number: 2, title: "Allow contact names and set up the service", detail: module.serviceSetupDetail) {
+            SetupStep(number: 1, title: "Connect Beeper Desktop", detail: "Open Beeper Desktop and sign in. In Beeper Settings → Beeper Desktop API, enable Allow connections and create a token for Beepster. Connect Beeper asks for that token if needed, requests Contacts access for names, and starts the Mac connection. Existing tokens and permissions are reused.") {
 #if APP_STORE
                 if !module.serviceConflictMessage.isEmpty { Text(module.serviceConflictMessage).font(.callout) }
                 if module.legacyServiceDetected {
-                    Text("A previous Beepster background service is running. Switch ownership here to retain your pairing and avoid two services starting together.")
+                    Text("A previous Beepster service is running. Switch ownership to keep your pairing and prevent two services running together.")
                     Button("Switch from previous service…") { module.switchFromLegacyService() }.disabled(module.startingOwnedService)
                 }
 #endif
                 HStack {
-                    Button(ready("contacts") ? "Review Contacts access" : "Allow Contacts") { module.allowContacts() }
-                    Button("Set up service") { module.connect() }.buttonStyle(.borderedProminent)
+                    Button("Open Beeper Desktop") { module.openBeeper() }
+                    Button(ready("beeper") && ready("contacts") ? "Beeper connected" : "Connect Beeper") { module.connect() }
+                        .buttonStyle(.borderedProminent).disabled(ready("beeper") && ready("contacts"))
                 }.disabled(module.busy)
             }
-            SetupStep(number: 3, title: "Connect Mac and phone privately", detail: "The setup assistant may already have completed this step. Its status appears in Requirements below.") {
+            SetupStep(number: 2, title: "Connect Mac and phone privately", detail: "Tailscale lets your phone reach Beepster away from this Mac. Connect Beeper sets this up automatically when Tailscale is ready; otherwise complete it here.") {
                 PrivateSetupHelp()
                 Button(ready("route") ? "Private connection ready" : "Start private connection") { module.repairRoute() }.disabled(module.busy || !ready("beeper") || ready("route"))
             }
-            SetupStep(number: 4, title: "Pair Beepster on your phone", detail: "Install Beepster on your Pebble. Open Connect phone and follow the pairing instructions, then save Beepster’s settings in the Pebble phone app and refresh Beepster on your watch.") {
+            SetupStep(number: 3, title: "Pair Beepster on your phone", detail: "Install Beepster on your Pebble. Open Connect phone and follow the pairing instructions, then save Beepster’s settings in the Pebble phone app and refresh Beepster on your watch.") {
                 Button("Connect phone") { module.pairPhone() }.buttonStyle(.borderedProminent).disabled(module.busy || !ready("route"))
             }
-            SetupStep(number: 5, title: "Optional: Apple Messages photos and GIFs", detail: module.attachmentSetupDetail) {
+            DisclosureGroup("Optional: Apple Messages photos and GIFs") {
+                Text(module.attachmentSetupDetail).font(.callout).foregroundStyle(.secondary)
                 Text(module.mediaAccessMessage).font(.callout).foregroundStyle(.secondary)
                 HStack {
                     Button("Allow attachment access") { module.openMediaAccessSettings() }
-                    Button("Check access") { module.checkMediaAccess() }
-                    Button("Restart and recheck") { module.checkMediaAccess(restart: true) }
                 }.disabled(module.mediaAccessBusy || module.busy)
             }
-            SetupStep(number: 6, title: "Optional: Hermes and OpenClaw approvals", detail: "Agent Links connects your agent session to the Telegram conversation you choose. It includes Hermes bridge installation, connection checks, and disabling links. Approvals appear inside that chat as Approve once or Deny. For OpenClaw, pair access first.") {
+            DisclosureGroup("Optional: Hermes and OpenClaw") {
+                Text("Connect each agent separately to its Telegram conversation for watch approvals and thread-specific instructions. Messaging works without agent setup.").font(.callout).foregroundStyle(.secondary)
                 AgentSetupView(module:module)
             }
             Button("Check connection") { module.checkConnection() }.disabled(module.busy)
         } troubleshooting: {
-            Text("If Beeper stops responding, keep Beeper Desktop open and check that its API is enabled. Replace an expired token in step 1. If contact names are missing, review Contacts access below.")
+            Text("If Beeper stops responding, keep Beeper Desktop open and check that its API is enabled. Use Change Beeper token below if the token expired. If contact names are missing, review Contacts access below.")
             HStack {
+                Button("Change Beeper token") { module.editToken() }
+                Button("Allow Contacts") { module.allowContacts() }
                 Button("Repair service") { module.repairService() }
                 Button("Repair private connection") { module.repairRoute() }
                 Button("Open Contacts privacy settings") { module.privacySettings() }
             }.disabled(module.busy)
+            HStack {
+                Button("Check attachment access") { module.checkMediaAccess() }
+                Button("Restart and recheck attachments") { module.checkMediaAccess(restart: true) }
+            }.disabled(module.busy || module.mediaAccessBusy)
         }
     }
 }
@@ -295,11 +295,11 @@ struct ReminderzView: View {
     private func ready(_ id: String) -> Bool { module.requirements.first { $0.id == id }?.ready == true }
     var body: some View {
         ConnectorDetail(page: .reminderz, requirements: module.requirements, busy: module.busy, message: module.message) {
-            SetupStep(number: 1, title: "Allow Reminders and start sync", detail: "If you used the standalone Reminderz Connector, stop its service and quit it first. Allow this Connector to access Reminders when macOS asks. Existing phone pairing is reused.") {
+            SetupStep(number: 1, title: "Allow Reminders and start sync", detail: "Allow access to Apple Reminders so your watch can read lists, add reminders, and mark them complete. This starts sync on the Mac and reuses existing pairing. If the standalone Reminderz Connector is running, quit it first.") {
                 Button(ready("permission") && ready("service") ? "Reminders sync ready" : "Allow Reminders and start sync") { module.setUpSync() }
                     .buttonStyle(.borderedProminent).disabled(module.busy || (ready("permission") && ready("service")))
             }
-            SetupStep(number: 2, title: "Connect Mac and phone privately", detail: "Keep this Mac running to sync your reminders with your watch.") {
+            SetupStep(number: 2, title: "Connect Mac and phone privately", detail: "Tailscale lets your phone reach your reminders while away from this Mac. Your reminders stay in Apple Reminders.") {
                 PrivateSetupHelp()
                 Button(ready("route") ? "Private connection ready" : "Start private connection") { module.repairRoute() }.disabled(module.busy || !ready("service") || ready("route"))
             }
@@ -323,13 +323,9 @@ struct ReminderzView: View {
 struct ExternalServiceView: View {
     let page: ConnectorPage
     @ObservedObject var service: ExternalService
-    var cameras: PomeCameraService? = nil
     var body: some View {
         ConnectorDetail(page: page, requirements: service.requirements, busy: service.busy, message: service.status) {
-            SetupStep(number: 1, title: page == .pome ? "Set up Itsyhome" : "Prepare your Tesla gateway", detail: page == .pome ? "Open Itsyhome and enable its Webhooks/CLI server. Keep Itsyhome running. Enter the server host and port below if they differ from the defaults." : "Tesla is coming soon and currently requires an existing personal gateway. Developer registration, Tesla sign-in, and the command proxy must already be configured. Enter that gateway’s host and port below.") {
-                if page == .pome {
-                    Button("Open Itsyhome") { NSWorkspace.shared.open(NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.nickustinov.itsyhome") ?? URL(string: "https://itsyhome.app/macos")!) }
-                }
+            SetupStep(number: 1, title: "Prepare your Tesla gateway", detail: "Tesla is coming soon and currently requires an existing personal gateway. Developer registration, Tesla sign-in, and the command proxy must already be configured. Enter that gateway’s host and port below.") {
                 Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
                     GridRow { Text("Service host"); TextField("Hostname or IPv4 address", text: $service.localHost) }
                     GridRow { Text("Service port"); TextField("Local port", text: $service.localPort) }
@@ -347,7 +343,6 @@ struct ExternalServiceView: View {
                 Button("Copy phone address") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(service.origin, forType: .string) }.buttonStyle(.borderedProminent).disabled(!service.privateReady || service.busy)
             }
             Button("Check connection") { Task { await service.check() } }.disabled(service.busy)
-            if let cameras { PomeCameraSetup(service: cameras) }
         } troubleshooting: {
             Text("If the Mac service check fails, confirm that the service is running and its host and port match step 1. If the phone cannot connect, check Tailscale on both devices and repeat steps 2 and 3. A private port used by another service is preserved; choose a different private port if needed.")
         }
@@ -450,7 +445,7 @@ struct ConnectorWindow: View {
                 if let module = model.beepster { BeepsterView(module: module) } else { enablePage(.beepster) }
             case .reminderz:
                 if let module = model.reminderz { ReminderzView(module: module) } else { enablePage(.reminderz) }
-            case .pome: ExternalServiceView(page: .pome, service: model.pome, cameras: model.cameras)
+            case .pome: PomeSetupView(service: model.cameras)
             case .tesla: ExternalServiceView(page: .tesla, service: model.tesla)
             case .settings: ConnectorSettings(model: model, updater: model.updater)
             }
@@ -460,13 +455,10 @@ struct ConnectorWindow: View {
         }
     }
     private func enablePage(_ page: ConnectorPage) -> some View {
-        ConnectorDetail(page: page, requirements: model.requirements(page), busy: false, message: "Existing pairing and permissions will be reused.") {
-            Text(page == .beepster ? "Start here to set up Beeper Desktop, allow contact names, and connect your phone. Enable Beepster to open the setup steps." : "Start here to allow Reminders access and connect your phone. If you use the standalone Reminderz Connector, stop its service and quit it first. Then enable Reminderz to open the setup steps.")
-            Button("Enable \(page.rawValue)") { model.enable(page) }.buttonStyle(.borderedProminent)
-        } troubleshooting: {
-            Text("Allow Keychain access if macOS requests it. Keep existing phone settings. For Reminderz, only one connector can run its service at a time.")
-        }
+        ProgressView("Preparing \(page.rawValue) setup…")
+            .onAppear { model.enable(page) }
     }
+
 }
 
 @MainActor final class OrganikAppDelegate: NSObject, NSApplicationDelegate {

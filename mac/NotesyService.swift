@@ -60,6 +60,7 @@ import CoreImage
 #endif
             stop();vault=url;notesFolder="Pebble";UserDefaults.standard.set(notesFolder,forKey:"stone.notesFolder");UserDefaults.standard.set(data,forKey:"stone.vault")
             status="Ready to browse \(url.lastPathComponent)."
+            start()
         } catch {status=error.localizedDescription}
     }
     func start() {

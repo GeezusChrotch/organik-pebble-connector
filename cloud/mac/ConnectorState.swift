@@ -21,7 +21,7 @@ enum ConnectorPage: String, CaseIterable, Identifiable {
         case .stone: return "Dictate and read your Obsidian notes."
         case .beepster: return "Your Beeper conversations on your wrist."
         case .reminderz: return "Apple Reminders, a button press away."
-        case .pome: return "Control your home through Itsyhome."
+        case .pome: return "Control Apple Home devices, scenes, and cameras."
         case .tesla: return "Coming soon. Connect an existing personal Tesla gateway."
         default: return ""
         }

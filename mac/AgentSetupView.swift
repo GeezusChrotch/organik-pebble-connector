@@ -56,6 +56,7 @@ struct AgentSetupView: View {
             ForEach(module.agentState?.states ?? [], id: \.self) { Text($0).font(.callout).foregroundStyle(.secondary) }
             GroupBox("OpenClaw") {
                 VStack(alignment:.leading,spacing:8) {
+                    SetupStep(number: 1, title: "Connect OpenClaw", detail: "Give the Connector access to OpenClaw so it can discover Telegram sessions and exchange prompts and pending approvals.") {
 #if APP_STORE
                     StoreAgentConnectionView(configuration: module.storeAgents, provider: "openclaw", saved: module.applyStoreAgentConfiguration)
                     Button("Pair / manage OpenClaw access") { module.optionalApprovals() }
@@ -70,11 +71,16 @@ struct AgentSetupView: View {
                         }
                     }
 #endif
+                    }
                     AgentLinkSection(module: module, provider: "openclaw", title: "OpenClaw")
+                    SetupStep(number: 3, title: "Enable approvals on your phone", detail: "In Pebble → Beepster → Settings, enable Show pending agent approvals and save. This lets you approve or deny pending requests inside the linked watch chat.") {
+                        Text("Test a request in the linked conversation to verify delivery. Saving a link does not approve any action.").font(.caption).foregroundStyle(.secondary)
+                    }
                 }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
             }
             GroupBox("Hermes") {
                 VStack(alignment:.leading,spacing:8) {
+                    SetupStep(number: 1, title: "Connect Hermes", detail: "Give the Connector access to Hermes so it can discover Telegram sessions and exchange prompts and pending approvals.") {
 #if APP_STORE
                     StoreAgentConnectionView(configuration: module.storeAgents, provider: "hermes", saved: module.applyStoreAgentConfiguration)
 #else
@@ -87,10 +93,13 @@ struct AgentSetupView: View {
                         Button("Install / enable Hermes bridge") { confirmInstall = true }
                     }
 #endif
+                    }
                     AgentLinkSection(module: module, provider: "hermes", title: "Hermes")
+                    SetupStep(number: 3, title: "Enable approvals on your phone", detail: "In Pebble → Beepster → Settings, enable Show pending agent approvals and save. This lets you approve or deny pending requests inside the linked watch chat.") {
+                        Text("Test a request in the linked conversation to verify delivery. Saving a link does not approve any action.").font(.caption).foregroundStyle(.secondary)
+                    }
                 }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
             }
-            Text("On your phone, enable Show pending agent approvals in Beepster settings. Pending actions then appear inside the linked watch chat with a description and Approve once / Deny. Linking never approves an action.").font(.callout)
         }
         .alert("Install OpenClaw thread prompt support?", isPresented: $confirmPromptSupport) {
             Button("Install") { module.agentCommand(["action":"install-openclaw-prompts"]) }
@@ -122,7 +131,7 @@ struct AgentLinkSection: View {
     private var links: [AgentLink] { (module.agentState?.links ?? []).filter { $0.provider == provider } }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            GroupBox("Link a Telegram conversation") {
+            SetupStep(number: 2, title: "Link the Telegram conversation", detail: "Choose this agent’s session and the same conversation in Beeper. This determines where watch approvals appear and which thread receives your editable Pebble instructions.") {
                 VStack(alignment:.leading,spacing:10) {
                     Picker("\(title) session", selection:$selectedAgent) {
                         Text("Choose a \(title) session…").tag("")

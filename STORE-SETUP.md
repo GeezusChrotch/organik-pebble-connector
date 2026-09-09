@@ -1,30 +1,31 @@
 # Organik Apps Pebble Connector 1.0 — Mac App Store setup
 
-**Prerelease guide. The App Store version is not publicly available yet.** This guide describes the Store build. The older DMG release has different update and background-service behavior.
+**Prerelease guide. The App Store version is not publicly available yet.** This guide describes the next Store candidate with direct HomeKit Pome; it does not describe the frozen submitted build 37. The older DMG release has different update and background-service behavior.
 
 ## Before you start
 
 Use macOS 14 or newer; Pome cameras require macOS 15.2 or newer. Install the Pebble apps you want separately in the Pebble phone app. Install Tailscale on the Mac and phone, sign into the same account, and connect both. Keep the Mac awake and the Connector running when using your watch away from the Mac.
 
-Only install each app's prerequisites if you use it: Beeper Desktop for Beepster, an Obsidian vault for Notesy, and Itsyhome for Pome home controls. Cameras use Apple Home through the Connector's bundled helper, rather than Itsyhome's control server. Hermes and OpenClaw are optional existing agents, not included agent installations.
+Only install each app's prerequisites if you use it: Beeper Desktop for Beepster, an Obsidian vault for Notesy, and an Apple Home configured on this Mac for Pome. Home controls and cameras share the Connector’s bundled HomeKit helper; no additional home-control app is required. Hermes and OpenClaw are optional existing agents, not included agent installations.
 
 Open Connector and choose an app in the sidebar. Follow its numbered Setup steps. Initial checks show Checking while they run. Red lights mean setup is incomplete or a completed check failed; Fix opens the relevant setup page. Green lights verify Mac connections, not a completed watch test.
 
 ## Notesy
 
 1. Choose your Obsidian vault folder and confirm access in the folder picker. The Store app remembers this permission; it does not need access to your whole home folder.
-2. Start Notesy on this Mac.
-3. Start the private connection. If Tailscale requires HTTPS/Serve setup, complete its prompt and retry.
-4. Select Connect phone and follow the pairing instructions in Pebble → Notesy → Settings. Save and refresh Notesy on your watch. Read a note and create a short test note to confirm both directions.
+   Notesy starts its Mac service automatically after you choose the folder.
+2. Start the private connection. If Tailscale requires HTTPS/Serve setup, complete its prompt and retry.
+3. Select Connect phone and follow the pairing instructions in Pebble → Notesy → Settings. Save and refresh Notesy on your watch. Read a note and create a short test note to confirm both directions.
 
 If the vault moved or access was revoked, choose it again. Existing pairing should be reused rather than reset.
 
 ## Beepster
 
-1. Enable the connector and follow its setup steps for Beeper Desktop. Turn on Beeper's local API connection and create a dedicated token with the permissions requested by Beepster. Paste it into Connector's secure token field. Existing tokens are retained across app updates; a working connection does not need a replacement token.
-2. Allow Contacts if you want contact names. If access was denied, adjust Connector's Contacts permission in System Settings → Privacy & Security and check again.
-3. For Apple Messages attachments, choose Allow access. The folder picker opens at Messages Attachments; confirm that folder. If unavailable, use Command–Shift–G and enter `~/Library/Messages/Attachments`. Do not select your whole home folder. macOS may require additional protected-data consent. The running gateway checks the actual folder access.
-4. Start the private connection, then use Connect phone to pair Beepster in its Pebble settings. Refresh a chat and open an attachment on the watch to verify those features.
+1. **Connect Beeper Desktop.** Sign in to Beeper, enable its Desktop API, and create a dedicated Beepster token. Choose Connect Beeper in Connector: its assistant asks for the token if needed, requests Contacts access for names, and starts the gateway. Existing credentials are reused.
+2. **Connect privately.** Install/connect Tailscale on Mac and phone so your watch can reach Beepster away from home. The assistant creates this route when Tailscale is ready; otherwise choose Start private connection.
+3. **Pair your phone.** Choose Connect phone, save the pairing details in Pebble → Beepster → Settings, and refresh a chat on the watch.
+
+Optional Apple Messages photos/GIFs are under their own disclosure. Choose Allow attachment access and select `~/Library/Messages/Attachments`; this allows the running gateway to read those protected files. macOS may require additional privacy consent. Retry and restart actions are in Troubleshooting. Optional Hermes/OpenClaw setup is separate from ordinary messaging.
 
 The Store gateway runs with Connector and stops when Connector quits. Closing its window keeps the app running. It does not install the older DMG background LaunchAgent.
 
@@ -36,21 +37,15 @@ The Store gateway runs with Connector and stops when Connector quits. Closing it
 
 If permission is denied, enable Reminders access for Connector in System Settings → Privacy & Security and check again.
 
-## Pome home controls
+## Pome — Apple Home
 
-1. Install/open Itsyhome and enable its Webhooks/CLI server. Keep Itsyhome running. In Connector's Pome page, save and check the service host and port. The defaults target Itsyhome on this Mac; enter the actual host for a different computer.
-2. Start the private connection.
-3. Copy the phone address into Pebble → Pome → Settings. Save, refresh Pome, and test a home control.
+1. **Connect Apple Home.** Set up your home in Apple Home on this Mac, then choose Connect Apple Home in Connector. This starts the bundled helper and requests permission to read your home and control accessories. There is no Itsyhome dependency or separate home-control server to configure.
+2. **Connect privately.** Start the private connection so the phone can reach this Mac through Tailscale. Home controls and cameras share the same route.
+3. **Pair your phone.** Copy Pome URL and Pome token into Pebble → Pome → Settings → Setup. Choose favorite scenes, save, and refresh Pome. Existing camera pairing is reused for home controls. Keep the token private; Pome currently uses URL/token pairing rather than a one-time pairing code.
 
-## Pome cameras
+Under **Optional: Cameras**, enable cameras, choose a camera, and set On demand or a refresh interval. Longer intervals suit battery cameras. Use Capture now to check a still image. There is no separate camera pairing step. Pausing cameras keeps home controls connected. Closing Connector’s window keeps its service running; normal Quit stops it.
 
-1. On a Mac running macOS 15.2 or newer, make sure your cameras are available to the Apple Home account on that Mac.
-2. In Connector → Pome → Cameras, turn on Use cameras with Pome. Select Start camera connection and Allow Home access if needed. The helper is bundled with Connector; no separate developer camera app should be installed.
-3. Select a camera. Choose On demand or a refresh interval; long intervals are preferable for battery-powered cameras. Hidden cameras are omitted and their local image history is cleared.
-4. Use Capture now, then Show latest image. This produces still images; it is not a live-video watch stream.
-5. Start the private camera connection. Copy camera address and Copy camera token into Pebble → Pome → Settings → Cameras, save, and refresh Cameras on the watch. **Camera pairing currently uses address plus token; it does not have a one-time pairing-code flow.** Keep the token private.
-
-Closing the Connector window is designed to keep captures running. Quit is designed to stop the owned helper. The first public release must complete normal close/Quit/relaunch and physical-watch acceptance before these behaviors are marked verified. No special developer entitlements or manually installed development profile should be required by an App Store customer.
+Pome’s direct HomeKit connection is the default for the next release. The signed development candidate has passed local/private HomeKit inventory and window-close/Quit/reopen checks; physical-watch acceptance and Store distribution remain separate release gates.
 
 ## Optional Hermes and OpenClaw
 

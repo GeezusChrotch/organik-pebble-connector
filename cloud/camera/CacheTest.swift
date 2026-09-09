@@ -31,6 +31,7 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
     private let marker = UIView()
     private let toggle = UIButton(type: .system)
     private var manager: HMHomeManager?
+    private lazy var homeControl = HomeControl(manager: { [weak self] in self?.manager })
     private var cameras: [HMAccessory] = []
     private var schedules: [String: CameraSchedule] = [:]
     private var cache: [String: CachedCamera] = [:]
@@ -114,6 +115,10 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
             let server = CacheHTTP(token: token, ownerToken: ownerToken)
             server.shutdown = { (UIApplication.shared.delegate as? AppDelegate)?.windowHost?.requestTermination() }
             server.route = { [weak self] method, path in self?.route(method, path) ?? (503, ["error": "Not ready"]) }
+            server.homeRoute = { [weak self] method, path, reply in
+                guard let self else { reply(503, ["error": "Not ready"]); return }
+                self.homeControl.route(method, path, reply: reply)
+            }
             try server.start(); self.server = server
             connectionStatus = "Private service: loopback 7855 · shared Natural image pipeline"
         } catch { connectionStatus = "Setup error: \(error.localizedDescription)" }
@@ -122,6 +127,8 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
         // Resume only after an explicit Start action in this app. Existing
         // experiment preferences and schedules are not implicitly migrated.
         if UserDefaults.standard.bool(forKey: enabledKey) { running = true; connectHome() }
+        // Accessory control must not depend on scheduled camera capture being on.
+        if manager == nil { connectHome() }
     }
     @objc private func copyConnectionToken() {
         guard server != nil, !token.isEmpty else { return }

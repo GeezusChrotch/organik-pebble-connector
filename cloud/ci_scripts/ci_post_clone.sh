@@ -13,7 +13,7 @@ if [[ -n ${CI_BUILD_NUMBER:-} ]]; then
 from pathlib import Path
 import re,sys
 r=Path(sys.argv[1]);number=sys.argv[2]
-assert number.isdecimal() and int(number)>=36, 'Set the first Xcode Cloud build number to 36 or higher.'
+assert number.isdecimal() and int(number)>=40, 'Set the first Xcode Cloud build number to 40 or higher.'
 for p in [r/'OrganikConnector.xcodeproj/project.pbxproj',r/'camera/CameraProbe.xcodeproj/project.pbxproj']:
  p.write_text(re.sub(r'CURRENT_PROJECT_VERSION = [0-9]+;', 'CURRENT_PROJECT_VERSION = '+number+';', p.read_text()))
 PYVERSION

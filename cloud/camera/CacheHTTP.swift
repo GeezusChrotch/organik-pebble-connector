@@ -12,6 +12,7 @@ final class CacheHTTP {
     var boundPort: UInt16? { listener?.port?.rawValue }
     var shutdown: (() -> Void)?
     var route: ((String, String) -> (Int, [String: Any]))?
+    var homeRoute: ((String, String, @escaping (Int, Any) -> Void) -> Void)?
     init(token: String, port: UInt16 = 7855, ownerToken: String = ProcessInfo.processInfo.environment["ORGANIK_CAMERA_OWNER_TOKEN"] ?? "") {
         self.token = token; self.requestedPort = port; self.ownerToken = ownerToken
     }
@@ -29,7 +30,10 @@ final class CacheHTTP {
                 if !finished { finished = true; self.clients -= 1; connection.cancel() }
             }
             connection.start(queue: .main)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { finish() }
+            // Header parsing remains bounded; HomeKit reads/writes are async.
+            var routed = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { if !routed { finish() } }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 15) { finish() }
             func receive() {
                 connection.receive(minimumIncompleteLength: 1, maximumLength: 8192) { data, _, complete, error in
                     guard !finished else { return }
@@ -49,6 +53,22 @@ final class CacheHTTP {
                         headers[name] = line[line.index(after: colon)...].trimmingCharacters(in: .whitespaces)
                     }
                     let authorized = headers["authorization"] == "Bearer \(self.token)"
+                    routed = true
+                    func send(_ status: Int, _ value: Any, shutdown: Bool = false) {
+                        guard !finished else { return }
+                        let body = (try? JSONSerialization.data(withJSONObject: value)) ?? Data("{}".utf8)
+                        let header = "HTTP/1.1 \(status) Result\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: \(body.count)\r\n\r\n"
+                        connection.send(content: Data(header.utf8) + body, completion: .contentProcessed { _ in
+                            finish()
+                            if shutdown { DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.shutdown?() } }
+                        })
+                    }
+                    if authorized, parts.count == 3, parts[1].hasPrefix("/home/") {
+                        if let homeRoute = self.homeRoute {
+                            homeRoute(String(parts[0]), String(parts[1])) { send($0, $1) }
+                        } else { send(503, ["error": "Direct HomeKit is unavailable in this Connector build"]) }
+                        return
+                    }
                     let response: (Int, [String: Any])
                     var shouldShutdown = false
                     if !authorized { response = (401, ["error": "Unauthorized"]) }
@@ -58,12 +78,7 @@ final class CacheHTTP {
                         response = shouldShutdown ? (200, ["stopping": true]) : (403, ["error": "Connector ownership required"])
                     }
                     else { response = self.route?(String(parts[0]), String(parts[1])) ?? (503, ["error": "Not ready"]) }
-                    let body = (try? JSONSerialization.data(withJSONObject: response.1)) ?? Data("{}".utf8)
-                    let header = "HTTP/1.1 \(response.0) Result\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: \(body.count)\r\n\r\n"
-                    connection.send(content: Data(header.utf8) + body, completion: .contentProcessed { _ in
-                        finish()
-                        if shouldShutdown { DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.shutdown?() } }
-                    })
+                    send(response.0, response.1, shutdown: shouldShutdown)
                 }
             }
             receive()

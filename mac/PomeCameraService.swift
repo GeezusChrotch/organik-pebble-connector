@@ -5,10 +5,10 @@ import LocalAuthentication
 
 @MainActor final class PomeCameraService: ObservableObject {
     @Published var enabled = UserDefaults.standard.bool(forKey: "pome.cameras.enabled") {
-        didSet { revision += 1; UserDefaults.standard.set(enabled, forKey: "pome.cameras.enabled"); if enabled { start() } else { shutdown() } }
+        didSet { revision += 1; UserDefaults.standard.set(enabled, forKey: "pome.cameras.enabled"); control(enabled ? "start" : "pause") }
     }
     @Published var tokenInput = ""
-    @Published var message = "Connect your camera service to check Home access and camera availability."
+    @Published var message = "Start the Pome connection, then allow access to Apple Home."
     @Published var origin = ""
     @Published var busy = false
     @Published var cameras: [PomeCameraItem] = []
@@ -30,6 +30,7 @@ import LocalAuthentication
     private var cameraToken = ""
 #endif
     @Published private var health = PomeCameraHealth([:])
+    @Published private var homeHealth = PomeHomeHealth([:], status: 0)
     @Published private var privateReady = false
     private var checking = false
     private var checkPending = false
@@ -37,24 +38,30 @@ import LocalAuthentication
     private let target = "http://127.0.0.1:7855"
     var running: Bool { health.running }
     func start() {
-        guard captureSupported else { message = "Pome cameras require macOS 15.2 or newer. Home controls remain available through Itsyhome."; return }
-        guard enabled, !launching, !quitting else { return }
+        guard !launching, !quitting else { return }
         guard let app = Bundle.main.resourceURL?.appendingPathComponent("Pome Cameras.app"), FileManager.default.fileExists(atPath: app.path) else {
-            message = "The camera service is missing. Install a camera-enabled Connector build."; return
+            message = "The Pome service is missing. Install the updated Connector."; return
         }
         launching = true
         launchTask = Task {
-            defer { launching = false }
+            defer { launching = false; completedInitialCheck = true }
             do {
                 let configuration = NSWorkspace.OpenConfiguration(); configuration.activates = false
                 _ = try await NSWorkspace.shared.openApplication(at: app, configuration: configuration)
                 for _ in 0..<15 {
-                    guard enabled, !quitting else { return }
+                    guard !quitting else { return }
                     if await connectLocalCameraService() { return }
                     try await Task.sleep(nanoseconds: 300_000_000)
                 }
-                message = "Camera setup could not start. Try Start camera connection again."
-            } catch { message = "Camera setup could not start. Try again." }
+                message = "Pome setup could not start. Try Start Pome connection again."
+            } catch { message = "Pome setup could not start. Try again." }
+        }
+    }
+    func setUpHome() {
+        start()
+        Task {
+            await launchTask?.value
+            if health.valid && !health.home { control("home") }
         }
     }
     func prepareToQuit() async {
@@ -88,7 +95,7 @@ import LocalAuthentication
 #else
         for app in NSRunningApplication.runningApplications(withBundleIdentifier: "com.organikapps.pome.camera-probe") where app.bundleURL?.standardizedFileURL == helper { app.terminate() }
 #endif
-        health = PomeCameraHealth([:]); preview = nil
+        health = PomeCameraHealth([:]); homeHealth = PomeHomeHealth([:], status: 0); preview = nil
     }
     @discardableResult func connectLocalCameraService() async -> Bool {
         do {
@@ -165,7 +172,7 @@ import LocalAuthentication
         await check()
     }
     func check() async {
-        guard enabled, !busy else { return }
+        guard !busy else { return }
         if checking { checkPending = true; return }
         checking = true
         defer {
@@ -180,10 +187,14 @@ import LocalAuthentication
             guard current == revision else { return }
             health = PomeCameraHealth(result)
             guard health.valid else { throw ConnectorError(message: "Update the camera service; its health protocol is not supported.") }
+            let localHome = await fetchHomeHealth(origin: target, secret: secret)
+            guard current == revision else { return }
+            homeHealth = localHome
             let configuration = await Task.detached { try? PrivateConnection.configuration() }.value
             guard current == revision else { return }
             origin = configuration.flatMap { PrivateConnection.origin(target: target, configuration: $0) } ?? ""
             var routeReady = false
+            // Reachability is independent of Home authorization/loading.
             if let url = URL(string: origin + "/health"), !origin.isEmpty {
                 let response = try? await jsonRequest(url, token: secret)
                 routeReady = response.map { PomeCameraHealth($0).valid } ?? false
@@ -194,13 +205,23 @@ import LocalAuthentication
             guard current == revision else { return }
             cameras = (list["cameras"] as? [[String: Any]] ?? []).compactMap(PomeCameraItem.init)
             if !cameras.contains(where: { $0.id == selectedCameraID }) { selectedCameraID = cameras.first(where: { $0.interval >= 0 })?.id ?? "" }
-            message = health.home ? "Camera connection ready. Capture continues with this window closed; quitting Connector stops it." : "Choose Allow Home access to connect your cameras."
+            message = homeHealth.ready ? "Pome connection ready. Home controls continue with this window closed; quitting Connector stops the connection." : homeHealth.detail
 
         } catch {
             guard current == revision else { return }
-            health = PomeCameraHealth([:]); privateReady = false; origin = ""
+            health = PomeCameraHealth([:]); homeHealth = PomeHomeHealth([:], status: 0); privateReady = false; origin = ""
             message = error.localizedDescription
         }
+    }
+    private func fetchHomeHealth(origin: String, secret: String) async -> PomeHomeHealth {
+        guard let url = URL(string: origin + "/home/status") else { return PomeHomeHealth([:], status: 0) }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 8)
+        request.setValue("Bearer " + secret, forHTTPHeaderField: "Authorization")
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            let value = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+            return PomeHomeHealth(value, status: (response as? HTTPURLResponse)?.statusCode ?? 0)
+        } catch { return PomeHomeHealth([:], status: 0) }
     }
     func startPrivateConnection() {
         guard !busy, health.valid else { return }
@@ -273,20 +294,60 @@ import LocalAuthentication
         }
         catch { message = error.localizedDescription }
     }
+    var homeRequirements: [ConnectorRequirement] {
+        [ConnectorRequirement("service", "Pome service", health.valid, "Choose Connect Apple Home to start the built-in service."),
+         ConnectorRequirement("home-permission", "Home access", health.home, "Choose Connect Apple Home and allow access when macOS asks."),
+         ConnectorRequirement("home-ready", "Apple Home", homeHealth.ready, homeHealth.detail),
+         ConnectorRequirement("route", "Private connection", privateReady, "Connect Tailscale on Mac and phone, then start the private connection.")]
+    }
     var requirements: [ConnectorRequirement] {
         guard enabled else { return [] }
-        return [ConnectorRequirement("camera-service", "Camera service", health.valid, "Choose Start camera connection."),
-                ConnectorRequirement("camera-home", "Camera Home access", health.home, "Choose Allow Home access here."),
-                ConnectorRequirement("camera-running", "Camera service started", health.running, "Choose Resume captures."),
-                ConnectorRequirement("camera-capture", "Camera capture supported", health.capture, "The camera service requires a compatible macOS version."),
-                ConnectorRequirement("camera-selection", "Cameras enabled", health.cameras, "Choose a camera and select On demand or a refresh interval."),
-                ConnectorRequirement("camera-route", "Private camera connection", privateReady, "Start the private camera connection, then check again.")]
+        return [ConnectorRequirement("camera-running", "Camera captures", health.running, "Choose Resume captures."),
+                ConnectorRequirement("camera-capture", "Camera capture supported", health.capture, "Cameras require macOS 15.2 or newer."),
+                ConnectorRequirement("camera-selection", "Cameras enabled", health.cameras, "Choose a camera and select On demand or a refresh interval.")]
     }
     var overviewRequirements: [ConnectorRequirement] {
-        guard enabled else { return [] }
-        let checks = requirements
-        return [ConnectorRequirement("cameras", "Cameras", checks.allSatisfy(\.ready),
-            checks.filter { !$0.ready }.map(\.title).joined(separator: ", "), checking: captureSupported && (!completedInitialCheck || launching))]
+        let loading = !completedInitialCheck || launching
+        var checks = homeRequirements.map { ConnectorRequirement($0.id, $0.title, $0.ready, $0.detail, checking: loading) }
+        if enabled {
+            checks.append(ConnectorRequirement("cameras", "Cameras", requirements.allSatisfy(\.ready),
+                requirements.filter { !$0.ready }.map(\.title).joined(separator: ", "), checking: loading))
+        }
+        return checks
+    }
+}
+
+struct PomeSetupView: View {
+    @ObservedObject var service: PomeCameraService
+    var body: some View {
+        ConnectorDetail(page: .pome, requirements: service.homeRequirements + service.requirements, busy: service.busy, message: service.message) {
+            SetupStep(number: 1, title: "Connect Apple Home", detail: "Pome connects directly to your Apple Home through this Connector. Sign in to iCloud and set up your home in Apple Home first. Connect Apple Home starts the built-in connection and requests permission to read your home and control its accessories.") {
+                HStack {
+                    Button("Connect Apple Home") { service.setUpHome() }.buttonStyle(.borderedProminent).disabled(service.busy)
+                }
+            }
+            SetupStep(number: 2, title: "Connect Mac and phone privately", detail: "Keep this Mac running for home controls and cameras. Closing the window keeps Pome connected; quitting Connector stops the connection.") {
+                PrivateSetupHelp()
+                Button("Start private connection") { service.startPrivateConnection() }.disabled(service.busy)
+            }
+            SetupStep(number: 3, title: "Connect Pome on your phone", detail: "In Pebble → Pome → Settings → Setup, paste the Pome URL and token, choose your favorite scenes, then save. The same connection serves home controls and cameras.") {
+                if !service.origin.isEmpty { Text(service.origin).textSelection(.enabled) }
+                HStack {
+                    Button("Copy Pome URL") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(service.origin, forType: .string) }.disabled(service.origin.isEmpty)
+                    Button("Copy Pome token") { service.copyToken() }
+                }
+            }
+            Button("Check connection") { Task { await service.check() } }.disabled(service.busy)
+            DisclosureGroup("Optional: Cameras") {
+                PomeCameraSetup(service: service)
+            }
+        } troubleshooting: {
+            HStack {
+                Button("Start Pome connection") { service.start() }
+                Button("Allow Home access") { service.control("home") }.disabled(service.busy)
+            }
+            Text("If Home access is denied, allow Pome Cameras in System Settings → Privacy & Security → HomeKit. If Apple Home is loading, open Apple Home and confirm your home is available, then check again. An older helper needs the updated Connector. For phone connection problems, check Tailscale on both devices and copy the shared Pome connection again.")
+        }
     }
 }
 
@@ -296,17 +357,15 @@ struct PomeCameraSetup: View {
         GroupBox("Cameras") {
             VStack(alignment: .leading, spacing: 12) {
                 Toggle("Use cameras with Pome", isOn: $service.enabled)
-                    .disabled(!service.captureSupported && !service.enabled)
+                    .disabled(service.busy || (!service.captureSupported && !service.enabled))
                 if !service.captureSupported {
-                    Text("Cameras require macOS 15.2 or newer. You can still use Pome home controls through Itsyhome.").font(.callout)
+                    Text("Cameras require macOS 15.2 or newer. Apple Home controls remain available.").font(.callout)
                 }
                 if service.enabled && service.captureSupported {
                     HStack {
-                        Button("Start camera connection") { service.start() }
-                        Button("Allow Home access") { service.control("home") }.disabled(service.busy)
                         Button(service.running ? "Pause captures" : "Resume captures") { service.control(service.running ? "pause" : "start") }.disabled(service.busy)
                     }
-                    Text("Camera capture continues while Connector is minimized or its window is closed. Quit stops captures. Start at login follows your existing Connector setting.").font(.caption).foregroundStyle(.secondary)
+                    Text("Pausing cameras keeps Apple Home controls connected. Camera capture continues with this window closed; quitting Connector stops it.").font(.caption).foregroundStyle(.secondary)
                     if !service.cameras.isEmpty {
                         Picker("Camera", selection: $service.selectedCameraID) {
                             ForEach(service.cameras) { Text($0.name).tag($0.id) }
@@ -322,12 +381,6 @@ struct PomeCameraSetup: View {
                             Button("Show latest image") { Task { await service.loadPreview() } }
                             Text(service.previewStatus).font(.caption)
                         }
-                    }
-                    Button("Start private camera connection") { service.startPrivateConnection() }.disabled(service.busy)
-                    Text("In Pebble → Pome → Settings → Cameras, paste the camera address and token, then save and refresh Cameras on your watch.")
-                    HStack {
-                        Button("Copy camera address") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(service.origin, forType: .string) }.disabled(service.origin.isEmpty)
-                        Button("Copy camera token") { service.copyToken() }
                     }
                     Text(service.message).font(.caption).foregroundStyle(.secondary)
                     ForEach(service.requirements) { RequirementLight(requirement: $0) }
