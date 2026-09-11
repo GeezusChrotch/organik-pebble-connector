@@ -1,6 +1,7 @@
 import UIKit
 import HomeKit
 import JavaScriptCore
+import OSLog
 #if targetEnvironment(macCatalyst)
 import ScreenCaptureKit
 #endif
@@ -46,6 +47,9 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
     private var jobStart = Date()
     private var activeControl: HMCameraSnapshotControl?
     private var activeStream: HMCameraStreamControl?
+    private var captureActivity: NSObjectProtocol?
+    private var captureBackgroundTask: UIBackgroundTaskIdentifier = .invalid
+    private let captureLog = Logger(subsystem: "com.organikapps.pome.camera-probe", category: "ManualCapture")
     private var quarantined = Set<String>()
     private var pendingSnapshots = Set<String>()
     private var timer: Timer?
@@ -218,9 +222,21 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
         source.cameraSource = nil; source.removeFromSuperview()
         source = HMCameraView(); source.backgroundColor = .black; view.addSubview(source)
         view.setNeedsLayout(); view.layoutIfNeeded()
-        if manualTickets[id] != nil {
+        // Prefer the camera's still-image API. Unlike a video stream this does
+        // not require the media transport to start. Manual results still pass
+        // manualCaptureIsFresh using HomeKit's captureDate, never Date().
+        // Cameras without snapshot support retain the bounded live path.
+        if manualTickets[id] != nil && profile.snapshotControl == nil {
             guard let stream = profile.streamControl else { fail(id, "This camera cannot provide a live capture"); return }
+            // A server-triggered capture is bounded user work even when the
+            // render window is completely covered. Never foreground that window.
+            captureActivity = ProcessInfo.processInfo.beginActivity(options: .userInitiatedAllowingIdleSystemSleep, reason: "Finish requested camera still")
+            captureBackgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Manual camera still") { [weak self] in
+                guard let self, self.activeID == id, self.jobToken == ticket else { return }
+                self.fail(id, "Camera background task expired. No cached image substituted.")
+            }
             activeStream = stream; stream.delegate = self; stream.startStream()
+            captureLog.info("Manual stream requested; appState=\(UIApplication.shared.applicationState.rawValue, privacy: .public) streamState=\(stream.streamState.rawValue, privacy: .public)")
         } else {
             guard let control = profile.snapshotControl else { fail(id, "No snapshot control"); return }
             activeControl = control; control.delegate = self
@@ -229,6 +245,9 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
         DispatchQueue.main.asyncAfter(deadline: .now() + 25) { [weak self] in
             guard let self, self.activeID == id, self.jobToken == ticket else { return }
             if self.pendingSnapshots.contains(id) { self.quarantined.insert(id) }
+            if let stream = self.activeStream {
+                self.captureLog.error("Manual stream timeout; appState=\(UIApplication.shared.applicationState.rawValue, privacy: .public) streamState=\(stream.streamState.rawValue, privacy: .public) hasStream=\(stream.cameraStream != nil, privacy: .public)")
+            }
             self.fail(id, self.activeStream != nil ? "Live camera did not respond. No cached image substituted." : "Snapshot timed out; retry blocked until late callback or restart")
         }
         updateStatus()
@@ -236,11 +255,16 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
     private func stopLiveCapture() {
         let stream = activeStream; activeStream = nil
         stream?.delegate = nil; stream?.stopStream()
+        if let activity = captureActivity { ProcessInfo.processInfo.endActivity(activity); captureActivity = nil }
+        if captureBackgroundTask != .invalid {
+            UIApplication.shared.endBackgroundTask(captureBackgroundTask); captureBackgroundTask = .invalid
+        }
     }
     func cameraStreamControlDidStartStream(_ control: HMCameraStreamControl) {
         DispatchQueue.main.async { [weak self] in
             guard let self, control === self.activeStream, let id = self.activeID,
                   let stream = control.cameraStream else { return }
+            self.captureLog.info("Manual stream started")
             let ticket = self.jobToken
             stream.updateAudioStreamSetting(.muted) { _ in }
             self.sourceRatio = stream.aspectRatio
@@ -292,15 +316,19 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
         #if targetEnvironment(macCatalyst)
         if #available(macCatalyst 18.2, *) {
             Task { @MainActor in
+                var captureStage = "render window"
                 do {
                     guard let uiWindow = view.window else { throw cacheError("No render window") }
+                    captureStage = "own-window lookup"
                     let shareable = try await SCShareableContent.currentProcess
-                    let windows = shareable.windows.filter { $0.owningApplication?.processID == ProcessInfo.processInfo.processIdentifier && $0.windowLayer == 0 && $0.title == "Pome Camera Probe" }
+                    let windows = shareable.windows.filter { $0.owningApplication?.processID == ProcessInfo.processInfo.processIdentifier && $0.title == "Pome Camera Probe" }
                     guard windows.count == 1, let window = windows.first else { throw cacheError("No unique own window") }
                     let config = SCStreamConfiguration()
                     config.width = Int(window.frame.width); config.height = Int(window.frame.height)
                     config.showsCursor = false; config.capturesAudio = false; config.ignoreShadowsSingleWindow = true
+                    captureStage = "own-window screenshot"
                     let image = try await SCScreenshotManager.captureImage(contentFilter: SCContentFilter(desktopIndependentWindow: window), configuration: config)
+                    captureStage = "pixel validation"
                     guard activeID == id, jobToken == ticket else { return }
                     let scale = window.frame.width / uiWindow.bounds.width
                     let title = window.frame.height - uiWindow.bounds.height * scale
@@ -343,7 +371,10 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
                     processed.image = frames["emery-natural"].flatMap { preview($0) }
                     lastCaptureOnScreen = window.isOnScreen
                     stopLiveCapture(); activeID = nil; activeControl = nil; updateStatus()
-                } catch { if activeID == id, jobToken == ticket { fail(id, error.localizedDescription) } }
+                } catch { if activeID == id, jobToken == ticket {
+                    let detail = error as NSError
+                    fail(id, "\(captureStage): \(detail.localizedDescription) [\(detail.domain):\(detail.code)]")
+                } }
             }
             return
         }
@@ -455,13 +486,13 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
         if method == "GET", url.path == "/camera-settings" {
             return (200, ["cameras": cameras.map { camera -> [String: Any] in
                 let id = camera.uniqueIdentifier.uuidString
-                return ["id": id, "name": camera.name, "interval": schedules[id]?.interval ?? 0]
+                return ["id": id, "name": camera.name, "room": camera.room?.name ?? "", "roomId": camera.room?.uniqueIdentifier.uuidString ?? "", "interval": schedules[id]?.interval ?? 0]
             }])
         }
         if method == "GET", url.path == "/cameras" {
             let items: [[String: Any]] = cameras.filter { schedules[$0.uniqueIdentifier.uuidString]?.enabled == true }.map {
                 let id = $0.uniqueIdentifier.uuidString
-                return ["id": id, "name": $0.name, "interval": schedules[id]?.interval ?? 0, "ready": cache[id] != nil, "age": cache[id].map { Int(Date().timeIntervalSince($0.snapshotAt)) } ?? -1, "error": errors[id] ?? ""]
+                return ["id": id, "name": $0.name, "room": $0.room?.name ?? "", "roomId": $0.room?.uniqueIdentifier.uuidString ?? "", "interval": schedules[id]?.interval ?? 0, "ready": cache[id] != nil, "age": cache[id].map { Int(Date().timeIntervalSince($0.snapshotAt)) } ?? -1, "error": errors[id] ?? ""]
             }
             return (200, ["running": running, "liveCaptureActive": activeStream != nil, "cameras": items])
         }
@@ -483,6 +514,12 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
         if method == "GET", parts[0] == "capture" {
             guard var result = captureResults[id], result["requestID"] as? String == url.queryItems?.first(where: { $0.name == "request" })?.value else { return (404, ["error": "Capture request expired"]) }
             if manualTickets[id] != nil { result["state"] = activeID == id && jobStart >= (manualRequestedAt[id] ?? .distantFuture) ? "capturing" : "queued" }
+            if activeID == id {
+                result["streamState"] = activeStream.map { Int($0.streamState.rawValue) } ?? -1
+                result["hasStream"] = activeStream?.cameraStream != nil
+                result["applicationState"] = UIApplication.shared.applicationState.rawValue
+                result["backgroundTaskActive"] = captureBackgroundTask != .invalid
+            }
             return (200, result)
         }
         if method == "GET", parts[0] == "history" {

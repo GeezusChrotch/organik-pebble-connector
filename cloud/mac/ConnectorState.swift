@@ -2,14 +2,16 @@ import Foundation
 
 enum ConnectorPage: String, CaseIterable, Identifiable {
     case overview = "Overview", stone = "Notesy", beepster = "Beepster"
+    case eventz = "Eventz"
     case reminderz = "Reminderz", pome = "Pome", tesla = "Tesla", settings = "Settings"
     var id: String { rawValue }
-    static var connectors: [Self] { [.stone, .beepster, .reminderz, .pome, .tesla] }
+    static var connectors: [Self] { [.stone, .beepster, .reminderz, .eventz, .pome, .tesla] }
     var symbol: String {
         switch self {
         case .overview: return "square.grid.2x2"
         case .stone: return "note.text"
         case .beepster: return "bubble.left.and.bubble.right"
+        case .eventz: return "calendar"
         case .reminderz: return "checklist"
         case .pome: return "house"
         case .tesla: return "car"
@@ -20,6 +22,7 @@ enum ConnectorPage: String, CaseIterable, Identifiable {
         switch self {
         case .stone: return "Dictate and read your Obsidian notes."
         case .beepster: return "Your Beeper conversations on your wrist."
+        case .eventz: return "Your Mac calendars on your wrist."
         case .reminderz: return "Apple Reminders, a button press away."
         case .pome: return "Control Apple Home devices, scenes, and cameras."
         case .tesla: return "Coming soon. Connect an existing personal Tesla gateway."
@@ -60,5 +63,19 @@ struct ConnectorVisibility {
     }
     func setVisible(_ visible: Bool, for page: ConnectorPage) {
         defaults.set(visible, forKey: "visible." + page.rawValue)
+    }
+}
+
+// A missing shared dependency should not create a failure on every app card.
+enum OverviewConnectionStatus {
+    static func requirements(_ requirements: [ConnectorRequirement], tailscaleReady: Bool) -> [ConnectorRequirement] {
+        requirements.compactMap { requirement in
+            guard requirement.id == "route" else { return requirement }
+            guard tailscaleReady else { return nil }
+            return ConnectorRequirement("route", "App connection", requirement.ready, requirement.detail, checking: requirement.checking)
+        }
+    }
+    static func tailscaleConnected(_ status: [String: Any]) -> Bool {
+        status["BackendState"] as? String == "Running" && (status["Self"] as? [String: Any])?["Online"] as? Bool == true
     }
 }

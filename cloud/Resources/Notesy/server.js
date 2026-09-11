@@ -241,6 +241,7 @@ function makeServer({vault, state, token, folder}) {
       if(req.method==='GET'&&url.pathname==='/v3/folders')return send(res,200,browser.folders(url.searchParams.get('parent')||''));
       if(req.method==='POST'&&url.pathname==='/v3/hidden')return send(res,200,browser.setHidden(body));
       if(req.method==='GET'&&/^\/v3\/notes\/[a-f0-9]{64}$/.test(url.pathname))return send(res,200,await require('./web-titles').enrich(browser.content(url.pathname.split('/').pop(),integer('page'))));
+      if(req.method==='GET'&&url.pathname==='/v3/media-diagnostics')return send(res,200,require('./media').mediaDiagnostics());
       const media=url.pathname.match(/^\/v3\/notes\/([a-f0-9]{64})\/image$/);
       if(req.method==='GET'&&media)return send(res,200,await require('./media').render(browser,media[1],integer('index'),url.searchParams.get('revision')||'',integer('width'),integer('height'),url.searchParams.get('mode')));
       const task=url.pathname.match(/^\/v3\/notes\/([a-f0-9]{64})\/task$/);

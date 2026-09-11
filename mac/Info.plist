@@ -46,5 +46,6 @@
 	<false/>
 	<key>NSContactsUsageDescription</key>
 	<string>Show contact names in Beepster chats on your Pebble.</string>
+<key>NSCalendarsFullAccessUsageDescription</key><string>Eventz reads your calendars and events to display them on your Pebble. It does not change your events.</string>
 </dict>
 </plist>

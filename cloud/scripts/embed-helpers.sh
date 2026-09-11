@@ -9,7 +9,7 @@ if [[ ${CODE_SIGNING_ALLOWED:-YES} != NO ]]; then
  for binary in "$resources/Beepster"/node-*; do
   codesign --force --options runtime --sign "$identity" --entitlements "$SRCROOT/mac/AppStore/Node.entitlements" "$binary"
  done
- for binary in "$resources/Beepster/beepster-keychain" "$resources/Notesy/renderer/notesy-image-helper" "$resources/Beepster/Beepster Contacts.app"; do
+ for binary in "$resources/Speech/organik-speech" "$resources/Beepster/beepster-keychain" "$resources/Notesy/renderer/notesy-image-helper" "$resources/Beepster/Beepster Contacts.app"; do
   codesign --force --options runtime --sign "$identity" --entitlements "$SRCROOT/mac/AppStore/InheritedTool.entitlements" "$binary"
  done
 fi

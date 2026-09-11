@@ -6,3 +6,7 @@ Resources/Beepster/Beepster Contacts.app/Contents/MacOS/
 Resources/Beepster/gateway/node_modules/
 Resources/Notesy/renderer/notesy-image-helper
 **/xcuserdata/
+
+Resources/Speech/organik-speech
+Resources/Speech/*.bundle/
+Resources/**/_CodeSignature/

@@ -370,7 +370,7 @@ final class ReminderzModule: NSObject, NSWindowDelegate, ObservableObject {
         connectPhone()
     }
     var nextStep: String {
-        if EKEventStore.authorizationStatus(for: .reminder) != .fullAccess { return "Allow Reminders" }
+        if EKEventStore.authorizationStatus(for: .reminder) != .fullAccess { return "Continue" }
         if serviceStopped { return "Start service" }
         if requirements.first(where: { $0.id == "route" })?.ready != true { return "Start private connection" }
         return "Connect phone"
@@ -521,7 +521,7 @@ final class ReminderzModule: NSObject, NSWindowDelegate, ObservableObject {
         privateStatus = statusLabel("Private sync: Checking Tailscale…")
         loginStatus = statusLabel("Start at login: Checking…")
         [reminderStatus, connectorStatus, privateStatus, loginStatus].forEach(stack.addArrangedSubview)
-        stack.addArrangedSubview(actionRow("Allow Reminders", #selector(requestReminders),
+        stack.addArrangedSubview(actionRow("Continue", #selector(requestReminders),
                                           "Lets Reminderz read lists, add items, and mark items complete."))
         stack.addArrangedSubview(actionRow("Start Private Sync", #selector(startPrivateSync),
                                           "Creates a tailnet-only HTTPS route. It never enables public Funnel access."))

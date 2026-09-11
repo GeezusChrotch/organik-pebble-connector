@@ -134,6 +134,7 @@ import LocalAuthentication
     private var credentialQuery: [String: Any] {
         [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "org.organikapps.pebble.pome-cameras", kSecAttrAccount as String: "camera-token"]
     }
+    func sharedG2Credential() throws -> String { try token() }
     private func token() throws -> String {
 #if APP_STORE
         guard !cameraToken.isEmpty else { throw ConnectorError(message: "Start the camera connection to load its shared credential.") }

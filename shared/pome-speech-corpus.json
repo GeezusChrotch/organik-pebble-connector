@@ -1,0 +1,215 @@
+{
+  "commands": [
+    [
+      "Turn desk lamp 2 on",
+      "power",
+      true
+    ],
+    [
+      "Please turn desk lamp 2 on",
+      "power",
+      true
+    ],
+    [
+      "Could you please turn desk lamp 2 on?",
+      "power",
+      true
+    ],
+    [
+      "Hey Pome, can you switch on desk lamp 2 please?",
+      "power",
+      true
+    ],
+    [
+      "I'd like you to turn desk lamp 2 off",
+      "power",
+      false
+    ],
+    [
+      "Would you shut off desk lamp 2, thanks",
+      "power",
+      false
+    ],
+    [
+      "Power off desk lamp 2",
+      "power",
+      false
+    ],
+    [
+      "Toggle desk lamp 2",
+      "toggle"
+    ],
+    [
+      "Set desk lamp 2 to twenty three percent",
+      "brightness",
+      23
+    ],
+    [
+      "Set desk lamp 2 to twenty-three per cent",
+      "brightness",
+      23
+    ],
+    [
+      "Dim desk lamp 2 to 37 percent",
+      "brightness",
+      37
+    ],
+    [
+      "Set desk lamp 2 to half brightness",
+      "brightness",
+      50
+    ],
+    [
+      "Set desk lamp 2 to full brightness",
+      "brightness",
+      100
+    ],
+    [
+      "Set desk lamp 2 to low",
+      "brightness",
+      25
+    ],
+    [
+      "Set desk lamp 2 to medium",
+      "brightness",
+      50
+    ],
+    [
+      "Set desk lamp 2 to high",
+      "brightness",
+      100
+    ],
+    [
+      "Set desk lamp 2 to zero percent",
+      "brightness",
+      0
+    ],
+    [
+      "Turn lounge lights green",
+      "color",
+      120
+    ],
+    [
+      "Make the lights in the lounge green",
+      "color",
+      120
+    ],
+    [
+      "Set the lounge lamps to blue please",
+      "color",
+      240
+    ],
+    [
+      "Could you make the lamps in the lounge warm white",
+      "color",
+      35
+    ],
+    [
+      "Turn lounge lights off",
+      "power",
+      false
+    ],
+    [
+      "Switch on the lights in the lounge",
+      "power",
+      true
+    ],
+    [
+      "Set lounge fan to seventy three percent",
+      "speed",
+      73
+    ],
+    [
+      "Set lounge fan to half speed",
+      "speed",
+      50
+    ],
+    [
+      "Set lounge fan to full speed",
+      "speed",
+      100
+    ],
+    [
+      "Close lounge blinds",
+      "position",
+      0
+    ],
+    [
+      "Open lounge blinds",
+      "position",
+      100
+    ],
+    [
+      "Set lounge blinds halfway",
+      "position",
+      50
+    ],
+    [
+      "Set lounge blinds to forty two percent",
+      "position",
+      42
+    ],
+    [
+      "Could you activate the movie time scene please",
+      "scene"
+    ],
+    [
+      "Run scene movie time",
+      "scene"
+    ],
+    [
+      "Start movie time",
+      "scene"
+    ],
+    [
+      "Movie time",
+      "scene"
+    ],
+    [
+      "What is lounge temperature",
+      "query"
+    ],
+    [
+      "Could you check desk lamp 2",
+      "query"
+    ],
+    [
+      "Is desk lamp 2 on",
+      "query"
+    ],
+    [
+      "Set desk lamp 2 to half",
+      "brightness",
+      50
+    ],
+    [
+      "Set desk lamp 2 to a quarter",
+      "brightness",
+      25
+    ],
+    [
+      "Set lounge fan to three quarters",
+      "speed",
+      75
+    ]
+  ],
+  "reject": [
+    "Do not turn desk lamp 2 on",
+    "Don't turn desk lamp 2 off",
+    "Turn lounge lights off except desk lamp 2",
+    "Turn desk lamp 2 off in ten minutes",
+    "Turn desk lamp 2 on tomorrow",
+    "Turn desk lamp 2 on if it is dark",
+    "Turn desk lamp 2 on and lounge fan off",
+    "Turn desk lamp 2 on then off",
+    "Set desk lamp 2 to 150 percent",
+    "Set desk lamp 2 to one hundred fifty percent",
+    "Set desk lamp 2 to minus ten percent",
+    "Set desk lamp 2 to -10 percent",
+    "Set desk lamp 2 to 10.5 percent",
+    "Set desk lamp 2 green at fifty percent",
+    "Turn desk lamp 2 on green",
+    "Make desk lamp 2 a little brighter",
+    "Turn unknown thing on"
+  ]
+}

@@ -38,25 +38,30 @@ function drawing(browser,file,data){
  return Buffer.from(JSON.stringify(scene));
 }
 const pdfCache=new Map();
+let pdfDiagnostic=null;
+function mediaDiagnostics(){return {pdf:pdfDiagnostic};}
 function pdfBlocks(browser,note,blocks){
  return blocks.flatMap(block=>{
   if(block.kind!=='image'||! /\.pdf(?:#|$)/i.test(block.ref))return [block];
+  let stage='resolve';
   try{
-   const data=read(resolve(browser,note,block.ref)),digest=crypto.createHash('sha256').update(data).digest('hex');
+   const file=resolve(browser,note,block.ref);stage='read';
+   const data=read(file),digest=crypto.createHash('sha256').update(data).digest('hex');
    let pages=pdfCache.get(digest);
    if(!pages){
-    const temp=fs.mkdtempSync(path.join(os.tmpdir(),'notesy-pdf-'));
+    stage='temp';const temp=fs.mkdtempSync(path.join(os.tmpdir(),'notesy-pdf-'));
     try{
-     const input=path.join(temp,'input'),helper=path.join(temp,'notesy-image-helper');fs.writeFileSync(input,data,{mode:0o600});fs.copyFileSync(path.join(assets,'notesy-image-helper'),helper);fs.chmodSync(helper,0o700);
+     const input=path.join(temp,'input'),helper=path.join(assets,'notesy-image-helper');stage='write-input';fs.writeFileSync(input,data,{mode:0o600});stage='run-helper';
      const info=JSON.parse(execFileSync(helper,[input,'120','100','pdf-info',assets],{timeout:5000,maxBuffer:4096,stdio:['ignore','pipe','pipe']}));
-     pages=info.pages;if(!Number.isInteger(pages)||pages<1||pages>1000)throw error('Invalid PDF page count.');
+     stage='metadata';pages=info.pages;if(!Number.isInteger(pages)||pages<1||pages>1000)throw error('Invalid PDF page count.');
      if(pdfCache.size>=24)pdfCache.delete(pdfCache.keys().next().value);pdfCache.set(digest,pages);
     }finally{fs.rmSync(temp,{recursive:true,force:true});}
    }
+   pdfDiagnostic={ok:true};
    const fragment=block.ref.split('#')[1]||'',match=fragment.match(/(?:^|&)page=(\d+)(?:&|$)/i),selected=match?Number(match[1]):null;
    if(selected!==null&&(selected<1||selected>pages))throw error('This PDF page is unavailable.');
    return Array.from({length:selected===null?pages:1},(_,i)=>({...block,pdfPage:selected===null?i+1:selected,pdfRevision:digest,text:path.posix.basename(block.ref.split('#')[0])+' · Page '+(selected===null?i+1:selected)+' of '+pages}));
-  }catch(e){return [{kind:'text',text:'PDF: '+(e.status>=400&&e.status<=599?e.message:'Cannot preview this PDF. It may be damaged, password-protected, or exceed the 1000-page limit.')}];}
+  }catch(e){pdfDiagnostic={ok:false,stage,code:typeof e.code==='string'?e.code:null,signal:typeof e.signal==='string'?e.signal:null,exitStatus:Number.isInteger(e.status)?e.status:null};return [{kind:'text',text:'PDF: '+(e.code==='EPERM'||e.code==='EACCES'?'The Connector could not start the PDF viewer. Restart or update the Connector.':e.status>=400&&e.status<=599?e.message:'Cannot preview this PDF. It may be damaged, password-protected, or exceed the 1000-page limit.')}];}
  });
 }
 async function render(browser,id,index,revision,width,height,mode){
@@ -70,10 +75,9 @@ async function render(browser,id,index,revision,width,height,mode){
  const key=crypto.createHash('sha256').update(data).update(width+':'+height+':'+kind+':'+mode).digest('hex');if(cache.has(key))return cache.get(key);
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'notesy-image-')),input=path.join(temp,'input');fs.writeFileSync(input,data,{mode:0o600});
  try{
-  // Give the Swift CLI its own process bundle context. Direct execution inside the
-  // enclosing macOS app can stall before main. Copying preserves its code signature.
-  const executable=path.join(temp,'notesy-image-helper');
-  fs.copyFileSync(path.join(assets,'notesy-image-helper'),executable);fs.chmodSync(executable,0o700);
+  // App Sandbox permits launching the signed bundled helper, not an executable
+  // copied into writable temporary storage. Only input data belongs in temp.
+  const executable=path.join(assets,'notesy-image-helper');
   const result=await new Promise((resolve,reject)=>execFile(executable,[input,String(width),String(height),kind,assets],{timeout:14000,maxBuffer:384*1024},(err,stdout)=>{if(err)reject(error('This image could not be converted. Check its format or size.',422));else{try{resolve(JSON.parse(stdout));}catch{reject(error('Image conversion failed.',422));}}}));
   const rgba=Buffer.from(result.rgba,'base64');if(rgba.length!==result.width*result.height*4||result.width>width||result.height>height)throw error('Invalid converted image.',422);
   const pixels=quantizeImage({width:result.width,height:result.height,rgba,mode,kind:kind==='image'?'photo':'drawing'});
@@ -81,4 +85,4 @@ async function render(browser,id,index,revision,width,height,mode){
   const value={width:result.width,height:result.height,encoding:'rle-gcolor8',data:Buffer.from(runs).toString('base64')};if(cache.size>=12)cache.delete(cache.keys().next().value);cache.set(key,value);return value;
  }finally{fs.rmSync(temp,{recursive:true,force:true});}
 }
-module.exports={render,resolve,drawing,pdfBlocks};
+module.exports={render,resolve,drawing,pdfBlocks,mediaDiagnostics};

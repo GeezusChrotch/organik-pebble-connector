@@ -312,7 +312,7 @@ final class BeepsterModule: NSObject, ObservableObject {
             actionRow(button("Set Beeper Token", #selector(setBeeperToken)),
                       what: "Stores a dedicated Beeper Desktop API token in Keychain.",
                       why: "The local gateway needs it to read conversations and send replies."),
-            actionRow(button("Enable Contacts", #selector(enableContacts)),
+            actionRow(button("Continue", #selector(enableContacts)),
                       what: "Requests read-only access to your Mac contacts.",
                       why: "Lets Apple conversations show names instead of email addresses or phone numbers."),
             actionRow(button("Open Privacy Settings", #selector(openPrivacySettings)),
@@ -1087,6 +1087,14 @@ final class BeepsterModule: NSObject, ObservableObject {
         // the Connector; lookup tools inherit its sandbox and privacy context.
         let completed = DispatchSemaphore(value: 0)
         DispatchQueue.main.async {
+            if CNContactStore.authorizationStatus(for: .contacts) == .notDetermined {
+                let explanation = NSAlert()
+                explanation.messageText = "Contact names in Beepster"
+                explanation.informativeText = "Beepster can match conversation phone numbers and email addresses to Contacts on this Mac. Matched names are sent with conversations to your paired phone and Pebble watch over your private connection. Your address book is not uploaded to an Organik Apps server. This is optional: without access, Beepster uses names provided by Beeper. You can change access in System Settings."
+                explanation.addButton(withTitle: "Continue")
+                explanation.addButton(withTitle: "Not Now")
+                guard explanation.runModal() == .alertFirstButtonReturn else { completed.signal(); return }
+            }
             CNContactStore().requestAccess(for: .contacts) { _, _ in completed.signal() }
         }
         completed.wait()

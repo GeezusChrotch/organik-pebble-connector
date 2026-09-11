@@ -52,3 +52,6 @@ from pathlib import Path
 import plistlib,sys
 p=Path(sys.argv[1])/'Contents/Info.plist';p.write_bytes(plistlib.dumps(dict(CFBundleExecutable='CameraWindowHost',CFBundleIdentifier='com.organikapps.pome.camera-window-host',CFBundlePackageType='BNDL',NSPrincipalClass='PomeCameraWindowHost')))
 PY
+
+# Build pinned local speech code on the stable Cloud toolchain. Model data is downloaded on first use.
+bash "$root/../scripts/stage-speech.sh" "$resources"

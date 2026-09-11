@@ -6,6 +6,7 @@ import ServiceManagement
 @MainActor final class ConnectorModel: ObservableObject {
     let stone = NotesyService()
     let cameras = PomeCameraService()
+    let even = EvenG2Service()
     // Visibility never starts or stops the existing personal gateway.
     let tesla = ExternalService(name: "Tesla", description: "Use your existing Tesla gateway. Developer registration, Tesla sign-in, and the command proxy are managed by that gateway.", localPort: 8793, privatePort: 10449, healthPath: "/health")
     let updater = ConnectorUpdater()
@@ -15,10 +16,24 @@ import ServiceManagement
     }
     @Published var beepster: BeepsterModule?
     @Published var reminderz: ReminderzModule?
+    @Published var eventz: EventzModule?
     @Published var visiblePages = ConnectorPage.connectors.filter { ConnectorVisibility(defaults: .standard).isVisible($0) }
     private var legacyViews: [ConnectorPage: NSView] = [:]
     private var subscriptions = Set<AnyCancellable>()
     private var timer: Timer?
+    @Published private(set) var tailscale = ConnectorRequirement("tailscale", "Tailscale", false, "Not checked")
+    func overviewRequirements(_ page: ConnectorPage) -> [ConnectorRequirement] {
+        OverviewConnectionStatus.requirements(requirements(page), tailscaleReady: tailscale.ready)
+    }
+    func fixTailscale() {
+        if let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "io.tailscale.ipn.macos") {
+            NSWorkspace.shared.open(app)
+        } else if FileManager.default.fileExists(atPath: "/Applications/Tailscale.app") {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Tailscale.app"))
+        } else {
+            NSWorkspace.shared.open(URL(string: "https://tailscale.com/download/mac")!)
+        }
+    }
     private var refreshing = false
     func start() {
         for notification in [NSWindow.didMiniaturizeNotification, NSWindow.didDeminiaturizeNotification, NSWindow.willCloseNotification, NSWindow.didBecomeMainNotification, NSWindow.didResignMainNotification] {
@@ -29,10 +44,18 @@ import ServiceManagement
         for service in [stone.objectWillChange, cameras.objectWillChange, tesla.objectWillChange] {
             service.sink { [weak self] _ in self?.objectWillChange.send(); self?.scheduleStatusSnapshot() }.store(in: &subscriptions)
         }
-        for page in [ConnectorPage.beepster, .reminderz] where UserDefaults.standard.bool(forKey: "enabled." + page.rawValue) { enable(page) }
+        for page in [ConnectorPage.beepster, .reminderz, .eventz] where UserDefaults.standard.bool(forKey: "enabled." + page.rawValue) { enable(page) }
         if UserDefaults.standard.bool(forKey: "stone.enabled") { stone.start() }
         updater.start()
         cameras.start()
+        if UserDefaults.standard.bool(forKey: "even.enabled") {
+            Task {
+                for _ in 0..<20 {
+                    if await cameras.connectLocalCameraService() { even.start(home: cameras); break }
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                }
+            }
+        }
         Task { await refresh() }
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in await self?.refresh() }
@@ -55,6 +78,11 @@ import ServiceManagement
             reminderz = module
             module.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send(); self?.scheduleStatusSnapshot() }.store(in: &subscriptions)
             legacyViews[page] = module.makeContent()
+        } else if page == .eventz && eventz == nil {
+            let module = EventzModule()
+            eventz = module
+            module.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send(); self?.scheduleStatusSnapshot() }.store(in: &subscriptions)
+            legacyViews[page] = module.makeContent()
         }
         UserDefaults.standard.set(true, forKey: "enabled." + page.rawValue)
     }
@@ -63,6 +91,7 @@ import ServiceManagement
         case .stone: return stone.requirements
         case .beepster: return beepster.map { $0.requirements + $0.agentRequirements } ?? unchecked([("contacts", "Contact names"), ("beeper", "Beeper connection"), ("route", "Private connection"), ("attachments", ConnectorLabels.attachments)], page: page)
         case .reminderz: return reminderz?.requirements ?? unchecked([("permission", "Reminders access"), ("service", "Mac service"), ("route", "Private connection")], page: page)
+        case .eventz: return eventz?.requirements ?? unchecked([("permission", "Calendars access"), ("service", "Mac service"), ("route", "Private connection")], page: page)
         case .pome: return cameras.overviewRequirements
         case .tesla: return tesla.requirements
         default: return []
@@ -75,8 +104,22 @@ import ServiceManagement
         guard !refreshing else { return }
         refreshing = true
         defer { refreshing = false; scheduleStatusSnapshot() }
+        let shared = await Task.detached { () -> ConnectorRequirement in
+            guard let executable = PrivateConnection.executable else {
+                return ConnectorRequirement("tailscale", "Tailscale", false, "Install Tailscale on your Mac and phone, then sign in to the same account.")
+            }
+            let result = runCommand(executable, ["status", "--json"], timeout: 8, discardStandardError: true)
+            guard result.0 == 0, let data = result.1.data(using: .utf8),
+                  let status = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return ConnectorRequirement("tailscale", "Tailscale", false, "Could not verify Tailscale. Open it and check your connection.")
+            }
+            let connected = OverviewConnectionStatus.tailscaleConnected(status)
+            return ConnectorRequirement("tailscale", "Tailscale", connected, connected ? "Connected on this Mac. Your phone must also be connected to Tailscale." : "Connect Tailscale on this Mac. App connections will be checked separately.")
+        }.value
+        tailscale = shared
         // Hidden connectors retain their settings and service, but do not add dashboard checks.
         if visiblePages.contains(.beepster) { beepster?.checkConnection() }
+        if visiblePages.contains(.eventz) { eventz?.checkConnection() }
         if visiblePages.contains(.reminderz) { reminderz?.checkConnection() }
         if visiblePages.contains(.stone) { await stone.refresh() }
         if visiblePages.contains(.pome) { await cameras.check() }
@@ -97,6 +140,7 @@ import ServiceManagement
             let windows = NSApp.windows.filter { $0.identifier?.rawValue == "connector" || $0.title == "Organik Apps Pebble Connector" }
             let snapshot: [String: Any] = ["pid": ProcessInfo.processInfo.processIdentifier,
                 "checkedAt": ISO8601DateFormatter().string(from: Date()), "apps": checks,
+                "tailscale": ["ready": self.tailscale.ready, "checking": self.tailscale.checking, "detail": self.tailscale.detail],
                 "windowVisible": windows.contains { $0.isVisible && !$0.isMiniaturized },
                 "windowMiniaturized": windows.contains { $0.isMiniaturized }, "applicationActive": NSApp.isActive]
             let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -109,7 +153,7 @@ import ServiceManagement
             } catch { /* Local diagnostics must never interfere with connections. */ }
         }
     }
-    func shutdown() { timer?.invalidate(); stone.shutdown(); beepster?.shutdown(); reminderz?.stopModule(); cameras.shutdown() }
+    func shutdown() { even.stop(); timer?.invalidate(); stone.shutdown(); beepster?.shutdown(); reminderz?.stopModule(); eventz?.stopModule(); cameras.shutdown() }
 }
 
 struct RequirementLight: View {
@@ -140,20 +184,6 @@ struct RequirementList: View {
                 }
             }.frame(maxWidth: .infinity, alignment: .leading).padding(10)
         }
-    }
-}
-
-struct SetupStep<Content: View>: View {
-    let number: Int
-    let title: String
-    let detail: String
-    @ViewBuilder var content: () -> Content
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("\(number). \(title)").font(.headline)
-            Text(detail).font(.callout).foregroundStyle(.secondary)
-            content()
-        }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 8)
     }
 }
 
@@ -274,10 +304,11 @@ struct BeepsterView: View {
             }
             Button("Check connection") { module.checkConnection() }.disabled(module.busy)
         } troubleshooting: {
+            Text("Contact names are matched on this Mac and sent with conversations to your paired phone and Pebble watch over your private connection. Your address book is not uploaded to an Organik Apps server. Contacts access is optional; without it, Beepster uses the names provided by Beeper.")
             Text("If Beeper stops responding, keep Beeper Desktop open and check that its API is enabled. Use Change Beeper token below if the token expired. If contact names are missing, review Contacts access below.")
             HStack {
                 Button("Change Beeper token") { module.editToken() }
-                Button("Allow Contacts") { module.allowContacts() }
+                Button("Continue") { module.allowContacts() }
                 Button("Repair service") { module.repairService() }
                 Button("Repair private connection") { module.repairRoute() }
                 Button("Open Contacts privacy settings") { module.privacySettings() }
@@ -295,8 +326,8 @@ struct ReminderzView: View {
     private func ready(_ id: String) -> Bool { module.requirements.first { $0.id == id }?.ready == true }
     var body: some View {
         ConnectorDetail(page: .reminderz, requirements: module.requirements, busy: module.busy, message: module.message) {
-            SetupStep(number: 1, title: "Allow Reminders and start sync", detail: "Allow access to Apple Reminders so your watch can read lists, add reminders, and mark them complete. This starts sync on the Mac and reuses existing pairing. If the standalone Reminderz Connector is running, quit it first.") {
-                Button(ready("permission") && ready("service") ? "Reminders sync ready" : "Allow Reminders and start sync") { module.setUpSync() }
+            SetupStep(number: 1, title: "Set up Reminders sync", detail: "Allow access to Apple Reminders so your watch can read lists, add reminders, and mark them complete. This starts sync on the Mac and reuses existing pairing. If the standalone Reminderz Connector is running, quit it first.") {
+                Button(ready("permission") && ready("service") ? "Reminders sync ready" : "Continue") { module.setUpSync() }
                     .buttonStyle(.borderedProminent).disabled(module.busy || (ready("permission") && ready("service")))
             }
             SetupStep(number: 2, title: "Connect Mac and phone privately", detail: "Tailscale lets your phone reach your reminders while away from this Mac. Your reminders stay in Apple Reminders.") {
@@ -316,6 +347,36 @@ struct ReminderzView: View {
                 Button("Unlock Keychain") { module.unlockToken() }
             }.disabled(module.busy)
             Button("Open Reminders privacy settings") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders")!) }
+        }
+    }
+}
+
+struct EventzView: View {
+    @ObservedObject var module: EventzModule
+    private func ready(_ id: String) -> Bool { module.requirements.first { $0.id == id }?.ready == true }
+    var body: some View {
+        ConnectorDetail(page: .eventz, requirements: module.requirements, busy: module.busy, message: module.message) {
+            SetupStep(number: 1, title: "Set up Calendar sync", detail: "Allow access to Apple Calendars so your watch can read calendars and events. This starts sync on the Mac and reuses existing pairing. Eventz does not create or change events.") {
+                Button(ready("permission") && ready("service") ? "Calendars sync ready" : "Continue") { module.setUpSync() }
+                    .buttonStyle(.borderedProminent).disabled(module.busy || (ready("permission") && ready("service")))
+            }
+            SetupStep(number: 2, title: "Connect Mac and phone privately", detail: "Tailscale lets your phone reach your events while away from this Mac. Your events stay in your Mac calendars.") {
+                PrivateSetupHelp()
+                Button(ready("route") ? "Private connection ready" : "Start private connection") { module.repairRoute() }.disabled(module.busy || !ready("service") || ready("route"))
+            }
+            SetupStep(number: 3, title: "Pair Eventz on your phone", detail: "Install Eventz on your Pebble. Open Connect phone and scan the pairing code. Copy the details into Pebble → Eventz → Settings, save, then refresh Eventz on your watch.") {
+                Button("Connect phone") { module.pairPhone() }.buttonStyle(.borderedProminent).disabled(module.busy || !ready("route"))
+            }
+            Button("Check connection") { module.checkConnection() }.disabled(module.busy)
+        } troubleshooting: {
+            Text("If access was denied, allow it in System Settings → Privacy & Security → Calendars. If sync stops, check the requirements above and restart the service. Only one Eventz Connector can run at a time.")
+            HStack {
+                Button(module.isStopped ? "Start service" : "Stop service") { module.toggleRunning() }
+                Button("Restart service") { module.restart() }
+                Button("Repair private connection") { module.repairRoute() }
+                Button("Unlock Keychain") { module.unlockToken() }
+            }.disabled(module.busy)
+            Button("Open Calendars privacy settings") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars")!) }
         }
     }
 }
@@ -408,7 +469,7 @@ struct ConnectorSettings: View {
     }
 }
 
-struct ConnectorWindow: View {
+struct PebbleConnectorWindow: View {
     @ObservedObject var model: ConnectorModel
     var body: some View {
         NavigationSplitView {
@@ -426,15 +487,27 @@ struct ConnectorWindow: View {
                     VStack(alignment: .leading, spacing: 22) {
                         Text("Overview").font(.largeTitle.weight(.semibold))
                         Text("Choose an app in the sidebar for step-by-step setup. Fix opens that app’s setup and connection details.").foregroundStyle(.secondary)
+                        GroupBox {
+                            HStack(alignment: .top, spacing: 18) {
+                                Label("All apps", systemImage: "network").font(.headline).frame(width: 115, alignment: .leading)
+                                VStack(alignment: .leading, spacing: 8) {
+                                    RequirementLight(requirement: model.tailscale)
+                                    Text(model.tailscale.detail).font(.caption).foregroundStyle(.secondary)
+                                }.frame(maxWidth: .infinity, alignment: .leading)
+                                if !model.tailscale.ready && !model.tailscale.checking {
+                                    Button("Fix") { model.fixTailscale() }
+                                }
+                            }.padding(12)
+                        }
                         if model.visiblePages.isEmpty { Text("Show connectors in Settings to see their status here.").foregroundStyle(.secondary) }
                         ForEach(model.visiblePages) { page in
                             GroupBox {
                                 HStack(alignment: .top, spacing: 18) {
                                     Label(page.rawValue, systemImage: page.symbol).font(.headline).frame(width: 115, alignment: .leading)
                                     VStack(alignment: .leading, spacing: 10) {
-                                        ForEach(model.requirements(page)) { RequirementLight(requirement: $0) }
+                                        ForEach(model.overviewRequirements(page)) { RequirementLight(requirement: $0) }
                                     }.frame(maxWidth: .infinity, alignment: .leading)
-                                    if model.requirements(page).contains(where: { !$0.ready && !$0.checking }) { Button("Fix") { model.selection = page } }
+                                    if model.overviewRequirements(page).contains(where: { !$0.ready && !$0.checking }) { Button("Fix") { model.selection = page } }
                                 }.padding(12)
                             }
                         }
@@ -443,6 +516,8 @@ struct ConnectorWindow: View {
             case .stone: NotesyView(service: model.stone)
             case .beepster:
                 if let module = model.beepster { BeepsterView(module: module) } else { enablePage(.beepster) }
+            case .eventz:
+                if let module = model.eventz { EventzView(module: module) } else { enablePage(.eventz) }
             case .reminderz:
                 if let module = model.reminderz { ReminderzView(module: module) } else { enablePage(.reminderz) }
             case .pome: PomeSetupView(service: model.cameras)
@@ -531,6 +606,28 @@ struct ConnectorWindow: View {
 @main struct OrganikConnectorApp: App {
     @NSApplicationDelegateAdaptor(OrganikAppDelegate.self) var delegate
     @StateObject private var model = ConnectorModel()
+    init() {
+        // Used by the local test installer before launching any connector services.
+        if let argument = CommandLine.arguments.first(where: { $0.hasPrefix("--login-item=") }) {
+            do {
+                switch String(argument.dropFirst("--login-item=".count)) {
+                case "enable":
+                    try SMAppService.mainApp.register()
+                case "disable":
+                    try SMAppService.mainApp.unregister()
+                case "status": break
+                default:
+                    print("Expected --login-item=enable, disable, or status")
+                    exit(2)
+                }
+                print("Login item status: \(SMAppService.mainApp.status.rawValue)")
+                exit(0)
+            } catch {
+                print("Login item operation failed: \(error.localizedDescription)")
+                exit(1)
+            }
+        }
+    }
     var body: some Scene {
         Window("Organik Apps Pebble Connector", id: "connector") {
             ConnectorWindow(model: model).onAppear {
@@ -538,7 +635,7 @@ struct ConnectorWindow: View {
             }
         }.defaultSize(width: 970, height: 780)
         .commands {
-            CommandGroup(replacing: .newItem) {}
+            ConnectorWindowCommands()
             CommandGroup(after: .appInfo) {
                 UpdateMenu(updater: model.updater)
                 Button("Acknowledgments") {
@@ -554,4 +651,16 @@ struct ConnectorWindow: View {
 struct UpdateMenu: View {
     @ObservedObject var updater: ConnectorUpdater
     var body: some View { Button("Check for updates…") { updater.check() }.disabled(!updater.canCheck) }
+}
+
+struct ConnectorWindowCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+    var body: some Commands {
+        CommandGroup(replacing: .newItem) {
+            Button("Open Connector") {
+                openWindow(id: "connector")
+                NSApp.activate(ignoringOtherApps: true)
+            }.keyboardShortcut("o", modifiers: .command)
+        }
+    }
 }

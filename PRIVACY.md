@@ -16,6 +16,10 @@ The connector does not include analytics or advertising. A local ConnectionStatu
 
 Optional thread system instructions are stored locally in Beepster/thread-prompts.json with owner-only file permissions and backups. In Store mode, Connector sends the enabled Hermes prompt rows over the authenticated local bridge and writes an OpenClaw prompt snapshot within the explicitly selected agent folder. The OpenClaw plugin and Hermes bridge apply only the instructions matching the exact enabled session/chat link. The OpenClaw plugin requires conversation-hook and prompt-injection permission; the Hermes bridge adds ephemeral system context. Saving does not send a message, restart an agent, or modify its global prompt.
 
+## Optional Contacts access for Beepster
+
+With your permission, Beepster reads names, phone numbers and email addresses from Contacts on this Mac to match participants in your existing Beeper conversations. Matching happens locally. The helper returns only matching names and an opaque contact-group identifier to the local gateway; it does not export your entire address book. The gateway keeps lookup results in memory. Matched conversation and sender names, and the opaque grouping identifier used to combine conversations, are included in authenticated responses sent to your paired phone and Pebble watch through your private connection. Therefore contact-derived information does leave the Mac for your own devices; it is not uploaded to an Organik Apps server. Tailscale transports that private connection, and Beeper separately handles messaging under its own privacy policy. Access is optional: without it, Beepster uses labels supplied by Beeper. You can deny the macOS prompt or revoke access in System Settings → Privacy & Security → Contacts.
+
 ## Notesy web-page titles
 
 When a displayed note contains a bare HTTP(S) URL without a descriptive label,
@@ -53,3 +57,24 @@ When configured, camera images travel through your private Tailscale connection 
 ## Store sandbox and local services
 
 The Store build runs its bundled gateway as a child of Connector, rather than installing a background LaunchAgent. Notesy vault and attachment access use folders you select and locally stored security-scoped bookmarks. OpenClaw folder access is likewise explicit. Connector's start-at-login preference is optional. Local status checks and caches are not an Organik-hosted collection service. App Store privacy disclosures should describe the final distributed build and its enabled integrations, including direct requests to the third-party services described above.
+
+## Even G2 preview support
+
+The optional Even G2 connection runs inside the same Connector installation. Its
+HTTP service binds to loopback and uses a separate private Tailscale HTTPS route
+and a separate client credential stored in macOS Keychain. G2 apps can request
+Apple Home lists and controls and view existing camera snapshots through this
+connection. They cannot call the HomeKit helper's service-management endpoints.
+Pairing details are copied only on request and the Connector clears its clipboard
+copy after two minutes if another application has not replaced the clipboard.
+
+When the user starts dictation, microphone audio travels from the glasses through
+the Even phone app and the Connector to the speech provider configured on the Mac.
+A local provider processes it locally; a hosted provider receives the audio under
+that provider's privacy policy and may charge for usage. No hosted provider is
+selected automatically. Provider credentials stay in macOS Keychain and the Mac
+service's memory. The Connector does not log or save recordings or transcripts.
+The G2 app displays a proposed home action for confirmation before executing it.
+The phone app stores pairing and display preferences locally in its app storage.
+
+Local Parakeet dictation downloads public model assets from Hugging Face during setup. Once cached, transcription runs on the Mac without uploading recordings. Audio is written to a private temporary WAV while the native helper reads it, then deleted after success or failure. The Connector does not retain transcripts. A custom speech provider remains optional and receives recordings only when selected.

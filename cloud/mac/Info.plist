@@ -15,13 +15,15 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>14.0</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Eventz reads your calendars and events to display them on your Pebble. It does not change your events.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Show contact names in Beepster chats on your Pebble.</string>
 	<key>NSHighResolutionCapable</key>
@@ -32,8 +34,6 @@
 	<string>Enable Reminderz to read, create, complete, and delete your reminders from your Pebble.</string>
 	<key>NSRemindersUsageDescription</key>
 	<string>Enable Reminderz to sync Apple Reminders with your Pebble.</string>
-	<key>NotesyPackageVersion</key>
-	<string>1.4.7</string>
 	<key>OrganikCameraAppGroup</key>
 	<string>group.org.organikapps.pebbleconnector</string>
 	<key>OrganikDistribution</key>

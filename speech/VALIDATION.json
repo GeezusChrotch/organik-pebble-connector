@@ -1,0 +1,22 @@
+{
+  "connectorBuild": 55,
+  "installed": true,
+  "engine": "Parakeet TDT v3 via FluidAudio Core ML",
+  "fluidAudioRevision": "ec07aabfa6990133fee483705432b4cbd4dbe7d5",
+  "installedHealth": {
+    "home": true,
+    "dictation": true
+  },
+  "syntheticTranscriptionSeconds": 0.64,
+  "syntheticTranscript": "Turn the desk lamp on.",
+  "physicalG2Microphone": "pending",
+  "modelCacheMiB": 469,
+  "macOSMinimum": "14.0",
+  "signedHelperArchitectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "localEngineSupported": "Apple Silicon",
+  "newAutomatedTests": "private temporary audio cleanup and helper failure",
+  "storeCandidateValidation": "passed"
+}

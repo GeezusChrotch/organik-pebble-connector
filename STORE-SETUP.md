@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector 1.0 — Mac App Store setup
 
-**Prerelease guide. The App Store version is not publicly available yet.** This guide describes the next Store candidate with direct HomeKit Pome; it does not describe the frozen submitted build 37. The older DMG release has different update and background-service behavior.
+**Prerelease guide. The App Store version is not publicly available yet.** This guide describes the next Store candidate with direct HomeKit Pome; it includes the build 57 Apple-review fixes and latest Pome G2 support. The older DMG release has different update and background-service behavior.
 
 ## Before you start
 
@@ -8,7 +8,7 @@ Use macOS 14 or newer; Pome cameras require macOS 15.2 or newer. Install the Peb
 
 Only install each app's prerequisites if you use it: Beeper Desktop for Beepster, an Obsidian vault for Notesy, and an Apple Home configured on this Mac for Pome. Home controls and cameras share the Connector’s bundled HomeKit helper; no additional home-control app is required. Hermes and OpenClaw are optional existing agents, not included agent installations.
 
-Open Connector and choose an app in the sidebar. Follow its numbered Setup steps. Initial checks show Checking while they run. Red lights mean setup is incomplete or a completed check failed; Fix opens the relevant setup page. Green lights verify Mac connections, not a completed watch test.
+Open Connector and choose an app in the sidebar. Follow its numbered Setup steps. Initial checks show Checking while they run. One shared Tailscale light covers this Mac’s connection; each App connection light checks that app’s own private route. A shared outage is shown once. Red lights mean setup is incomplete or a completed check failed; Fix opens the relevant setup page. Green lights verify Mac connections, not a completed watch test.
 
 ## Notesy
 
@@ -21,7 +21,7 @@ If the vault moved or access was revoked, choose it again. Existing pairing shou
 
 ## Beepster
 
-1. **Connect Beeper Desktop.** Sign in to Beeper, enable its Desktop API, and create a dedicated Beepster token. Choose Connect Beeper in Connector: its assistant asks for the token if needed, requests Contacts access for names, and starts the gateway. Existing credentials are reused.
+1. **Connect Beeper Desktop.** Sign in to Beeper, enable its Desktop API, and create a dedicated Beepster token. Choose Connect Beeper in Connector: its assistant asks for the token if needed, explains optional Contacts matching and delivery of matched names to your paired phone/watch; choose Continue or Not Now before the system Contacts prompt, and starts the gateway. Existing credentials are reused.
 2. **Connect privately.** Install/connect Tailscale on Mac and phone so your watch can reach Beepster away from home. The assistant creates this route when Tailscale is ready; otherwise choose Start private connection.
 3. **Pair your phone.** Choose Connect phone, save the pairing details in Pebble → Beepster → Settings, and refresh a chat on the watch.
 
@@ -31,11 +31,17 @@ The Store gateway runs with Connector and stops when Connector quits. Closing it
 
 ## Reminderz
 
-1. Enable Reminderz and allow Reminders access when macOS asks. Existing reminders stay in Apple's Reminders store.
+1. Choose Continue in Reminders setup, then decide whether to grant access in the macOS permission dialog. Existing reminders stay in Apple's Reminders store.
 2. Start the private connection.
 3. Use Connect phone, save the pairing details in Pebble → Reminderz → Settings, and refresh the watch app. Verify a temporary reminder before relying on watch edits.
 
 If permission is denied, enable Reminders access for Connector in System Settings → Privacy & Security and check again.
+
+## Eventz
+
+1. Choose Continue in Calendar setup. The macOS permission dialog lets you decide whether Connector can read calendars and events. Eventz does not change events.
+2. Start its private connection so the phone can reach this Mac.
+3. Choose Connect phone and save the pairing details in Eventz’s Pebble settings. Refresh the watch and verify an event.
 
 ## Pome — Apple Home
 
@@ -46,6 +52,13 @@ If permission is denied, enable Reminders access for Connector in System Setting
 Under **Optional: Cameras**, enable cameras, choose a camera, and set On demand or a refresh interval. Longer intervals suit battery cameras. Use Capture now to check a still image. There is no separate camera pairing step. Pausing cameras keeps home controls connected. Closing Connector’s window keeps its service running; normal Quit stops it.
 
 Pome’s direct HomeKit connection is the default for the next release. The signed development candidate has passed local/private HomeKit inventory and window-close/Quit/reopen checks; physical-watch acceptance and Store distribution remain separate release gates.
+
+## Pome for Even G2
+
+1. In Pome, select Even G2 and connect Apple Home. It shares the existing HomeKit helper; no second Connector build is needed.
+2. Start the G2 connection with Tailscale connected on Mac and phone. Copy pairing into Pome’s settings in the Even phone app. The G2 route and credential are separate from Pebble pairing.
+3. On Apple Silicon, first setup prepares free local Parakeet dictation by downloading public model files. Audio is transcribed on the Mac; temporary audio is deleted after processing. Intel Macs need a custom speech provider for dictation. A custom hosted provider receives audio under its own policy and may charge for usage.
+4. Open Pome on the glasses. Verify navigation, a fresh camera image and dictation; review the proposed home action before confirming it. Mac health checks do not replace physical glasses tests. Basic microphone, camera and room controls have been user-tested; newer menu and dictation UX remains a separate acceptance check.
 
 ## Optional Hermes and OpenClaw
 
@@ -59,6 +72,8 @@ The Store app does not install agent plugins or patch agent code. Install suppor
 Choose a session and its matching Telegram chat separately for each agent. Edit the supplied Pebble-focused thread prompt if desired. Saving instructions does not send a chat message or change the agent's global prompt. Test an actual linked conversation before relying on approvals from the watch.
 
 ## Daily use and troubleshooting
+
+Close the main window without stopping services. Choose File → Open Connector (Command-O) to reopen it. Quit stops the app and its owned services.
 
 Use Settings to hide unused connectors, enable menu-bar mode/hide the Dock icon, or opt into start at login. Hiding an app preserves its settings and does not revoke permissions or stop its service. Tesla is hidden and marked Coming soon.
 

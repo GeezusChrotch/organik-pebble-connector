@@ -1,0 +1,5 @@
+Local dictation uses FluidAudio (Apache-2.0) and NVIDIA Parakeet TDT 0.6B v3, converted to Core ML by FluidInference.
+Runtime: https://github.com/FluidInference/FluidAudio
+Model and license: https://huggingface.co/FluidInference/parakeet-tdt-0.6b-v3-coreml
+Original model: https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3 (CC-BY-4.0)
+Models are downloaded at setup, cached locally, and used for on-device transcription.

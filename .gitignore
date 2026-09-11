@@ -3,3 +3,13 @@ dist/
 .DS_Store
 
 __pycache__/
+
+speech/.build/
+speech/.swiftpm/
+even-g2/pome/node_modules/
+even-g2/pome/dist/
+
+!cloud/Resources/EvenG2/pome/dist/
+!cloud/Resources/EvenG2/pome/dist/**
+
+even-g2/CANDIDATE-*.json

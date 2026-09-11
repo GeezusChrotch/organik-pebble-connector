@@ -1,0 +1,24 @@
+{
+  "package_id": "org.organikapps.pome",
+  "edition": "202601",
+  "name": "Pome",
+  "version": "0.1.12",
+  "min_sdk_version": "0.0.15",
+  "entrypoint": "index.html",
+  "permissions": [
+    {
+      "name": "network",
+      "desc": "Connects privately to your Organik Apps Connector for Apple Home controls, camera snapshots and dictation.",
+      "whitelist": [
+        "*"
+      ]
+    },
+    {
+      "name": "g2-microphone",
+      "desc": "Records your spoken home command when you choose Dictate."
+    }
+  ],
+  "supported_languages": [
+    "en"
+  ]
+}

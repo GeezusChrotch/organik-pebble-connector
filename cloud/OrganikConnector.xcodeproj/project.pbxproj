@@ -13,24 +13,31 @@
 		0000000000000000000000CB /* mac/BundledGatewayRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000067 /* mac/BundledGatewayRuntime.swift */; };
 		0000000000000000000000CC /* mac/ConnectorState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000068 /* mac/ConnectorState.swift */; };
 		0000000000000000000000CD /* mac/ConnectorUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000069 /* mac/ConnectorUpdater.swift */; };
-		0000000000000000000000CE /* mac/ExternalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006A /* mac/ExternalService.swift */; };
-		0000000000000000000000CF /* mac/LegacyGatewayHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006B /* mac/LegacyGatewayHandoff.swift */; };
-		0000000000000000000000D0 /* mac/NotesyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006C /* mac/NotesyService.swift */; };
-		0000000000000000000000D1 /* mac/PomeCameraHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006D /* mac/PomeCameraHealth.swift */; };
-		0000000000000000000000D2 /* mac/PomeCameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006E /* mac/PomeCameraPreview.swift */; };
-		0000000000000000000000D3 /* mac/PomeCameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006F /* mac/PomeCameraService.swift */; };
-		0000000000000000000000D4 /* mac/ReminderzModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000070 /* mac/ReminderzModule.swift */; };
-		0000000000000000000000D5 /* mac/Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000071 /* mac/Shared.swift */; };
-		0000000000000000000000D6 /* mac/StoreAgentConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000072 /* mac/StoreAgentConfiguration.swift */; };
+		0000000000000000000000CE /* mac/EvenG2Service.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006A /* mac/EvenG2Service.swift */; };
+		0000000000000000000000CF /* mac/EvenG2View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006B /* mac/EvenG2View.swift */; };
+		0000000000000000000000D0 /* mac/EventzModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006C /* mac/EventzModule.swift */; };
+		0000000000000000000000D1 /* mac/EventzQueryRange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006D /* mac/EventzQueryRange.swift */; };
+		0000000000000000000000D2 /* mac/ExternalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006E /* mac/ExternalService.swift */; };
+		0000000000000000000000D3 /* mac/LegacyGatewayHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006F /* mac/LegacyGatewayHandoff.swift */; };
+		0000000000000000000000D4 /* mac/NotesyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000070 /* mac/NotesyService.swift */; };
+		0000000000000000000000D5 /* mac/PomeCameraHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000071 /* mac/PomeCameraHealth.swift */; };
+		0000000000000000000000D6 /* mac/PomeCameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000072 /* mac/PomeCameraPreview.swift */; };
+		0000000000000000000000D7 /* mac/PomeCameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000073 /* mac/PomeCameraService.swift */; };
+		0000000000000000000000D8 /* mac/ReminderzModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000074 /* mac/ReminderzModule.swift */; };
+		0000000000000000000000D9 /* mac/SetupStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000075 /* mac/SetupStep.swift */; };
+		0000000000000000000000DA /* mac/Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000076 /* mac/Shared.swift */; };
+		0000000000000000000000DB /* mac/StoreAgentConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000077 /* mac/StoreAgentConfiguration.swift */; };
 		000000000000000000000190 /* Resources/ACKNOWLEDGMENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000012C /* Resources/ACKNOWLEDGMENTS.md */; };
 		000000000000000000000191 /* Resources/Beepster in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000012D /* Resources/Beepster */; };
-		000000000000000000000192 /* Resources/LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000012E /* Resources/LICENSE.txt */; };
-		000000000000000000000193 /* Resources/Notesy in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000012F /* Resources/Notesy */; };
-		000000000000000000000194 /* Resources/Organik.icns in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000130 /* Resources/Organik.icns */; };
-		000000000000000000000195 /* Resources/PRIVACY.md in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000131 /* Resources/PRIVACY.md */; };
-		000000000000000000000196 /* Resources/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000132 /* Resources/PrivacyInfo.xcprivacy */; };
-		000000000000000000000197 /* Resources/Reminderz-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000133 /* Resources/Reminderz-LICENSE.txt */; };
-		000000000000000000000198 /* Resources/container-migration.plist in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000134 /* Resources/container-migration.plist */; };
+		000000000000000000000192 /* Resources/EvenG2 in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000012E /* Resources/EvenG2 */; };
+		000000000000000000000193 /* Resources/LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000012F /* Resources/LICENSE.txt */; };
+		000000000000000000000194 /* Resources/Notesy in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000130 /* Resources/Notesy */; };
+		000000000000000000000195 /* Resources/Organik.icns in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000131 /* Resources/Organik.icns */; };
+		000000000000000000000196 /* Resources/PRIVACY.md in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000132 /* Resources/PRIVACY.md */; };
+		000000000000000000000197 /* Resources/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000133 /* Resources/PrivacyInfo.xcprivacy */; };
+		000000000000000000000198 /* Resources/Reminderz-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000134 /* Resources/Reminderz-LICENSE.txt */; };
+		000000000000000000000199 /* Resources/Speech in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000135 /* Resources/Speech */; };
+		00000000000000000000019A /* Resources/container-migration.plist in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000136 /* Resources/container-migration.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,7 +48,7 @@
 			remoteGlobalIDString = A00000000000000000000005;
 			remoteInfo = CameraProbe;
 		};
-		03764F353050F13B00B09212 /* PBXContainerItemProxy */ = {
+		03055B1C305444AE001A15A2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0000000000000000000003E8 /* camera/CameraProbe.xcodeproj */;
 			proxyType = 2;
@@ -58,24 +65,31 @@
 		000000000000000000000067 /* mac/BundledGatewayRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/BundledGatewayRuntime.swift; sourceTree = SOURCE_ROOT; };
 		000000000000000000000068 /* mac/ConnectorState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/ConnectorState.swift; sourceTree = SOURCE_ROOT; };
 		000000000000000000000069 /* mac/ConnectorUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/ConnectorUpdater.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006A /* mac/ExternalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/ExternalService.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006B /* mac/LegacyGatewayHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/LegacyGatewayHandoff.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006C /* mac/NotesyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/NotesyService.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006D /* mac/PomeCameraHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/PomeCameraHealth.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006E /* mac/PomeCameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/PomeCameraPreview.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006F /* mac/PomeCameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/PomeCameraService.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000070 /* mac/ReminderzModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/ReminderzModule.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000071 /* mac/Shared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/Shared.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000072 /* mac/StoreAgentConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/StoreAgentConfiguration.swift; sourceTree = SOURCE_ROOT; };
+		00000000000000000000006A /* mac/EvenG2Service.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/EvenG2Service.swift; sourceTree = SOURCE_ROOT; };
+		00000000000000000000006B /* mac/EvenG2View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/EvenG2View.swift; sourceTree = SOURCE_ROOT; };
+		00000000000000000000006C /* mac/EventzModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/EventzModule.swift; sourceTree = SOURCE_ROOT; };
+		00000000000000000000006D /* mac/EventzQueryRange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/EventzQueryRange.swift; sourceTree = SOURCE_ROOT; };
+		00000000000000000000006E /* mac/ExternalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/ExternalService.swift; sourceTree = SOURCE_ROOT; };
+		00000000000000000000006F /* mac/LegacyGatewayHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/LegacyGatewayHandoff.swift; sourceTree = SOURCE_ROOT; };
+		000000000000000000000070 /* mac/NotesyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/NotesyService.swift; sourceTree = SOURCE_ROOT; };
+		000000000000000000000071 /* mac/PomeCameraHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/PomeCameraHealth.swift; sourceTree = SOURCE_ROOT; };
+		000000000000000000000072 /* mac/PomeCameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/PomeCameraPreview.swift; sourceTree = SOURCE_ROOT; };
+		000000000000000000000073 /* mac/PomeCameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/PomeCameraService.swift; sourceTree = SOURCE_ROOT; };
+		000000000000000000000074 /* mac/ReminderzModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/ReminderzModule.swift; sourceTree = SOURCE_ROOT; };
+		000000000000000000000075 /* mac/SetupStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/SetupStep.swift; sourceTree = SOURCE_ROOT; };
+		000000000000000000000076 /* mac/Shared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/Shared.swift; sourceTree = SOURCE_ROOT; };
+		000000000000000000000077 /* mac/StoreAgentConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/StoreAgentConfiguration.swift; sourceTree = SOURCE_ROOT; };
 		00000000000000000000012C /* Resources/ACKNOWLEDGMENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Resources/ACKNOWLEDGMENTS.md; sourceTree = SOURCE_ROOT; };
 		00000000000000000000012D /* Resources/Beepster */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/Beepster; sourceTree = SOURCE_ROOT; };
-		00000000000000000000012E /* Resources/LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Resources/LICENSE.txt; sourceTree = SOURCE_ROOT; };
-		00000000000000000000012F /* Resources/Notesy */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/Notesy; sourceTree = SOURCE_ROOT; };
-		000000000000000000000130 /* Resources/Organik.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Resources/Organik.icns; sourceTree = SOURCE_ROOT; };
-		000000000000000000000131 /* Resources/PRIVACY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Resources/PRIVACY.md; sourceTree = SOURCE_ROOT; };
-		000000000000000000000132 /* Resources/PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Resources/PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT; };
-		000000000000000000000133 /* Resources/Reminderz-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Resources/Reminderz-LICENSE.txt"; sourceTree = SOURCE_ROOT; };
-		000000000000000000000134 /* Resources/container-migration.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Resources/container-migration.plist"; sourceTree = SOURCE_ROOT; };
+		00000000000000000000012E /* Resources/EvenG2 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/EvenG2; sourceTree = SOURCE_ROOT; };
+		00000000000000000000012F /* Resources/LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Resources/LICENSE.txt; sourceTree = SOURCE_ROOT; };
+		000000000000000000000130 /* Resources/Notesy */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/Notesy; sourceTree = SOURCE_ROOT; };
+		000000000000000000000131 /* Resources/Organik.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Resources/Organik.icns; sourceTree = SOURCE_ROOT; };
+		000000000000000000000132 /* Resources/PRIVACY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Resources/PRIVACY.md; sourceTree = SOURCE_ROOT; };
+		000000000000000000000133 /* Resources/PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Resources/PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT; };
+		000000000000000000000134 /* Resources/Reminderz-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Resources/Reminderz-LICENSE.txt"; sourceTree = SOURCE_ROOT; };
+		000000000000000000000135 /* Resources/Speech */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/Speech; sourceTree = SOURCE_ROOT; };
+		000000000000000000000136 /* Resources/container-migration.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Resources/container-migration.plist"; sourceTree = SOURCE_ROOT; };
 		0000000000000000000003E8 /* camera/CameraProbe.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = camera/CameraProbe.xcodeproj; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -90,24 +104,31 @@
 				000000000000000000000067 /* mac/BundledGatewayRuntime.swift */,
 				000000000000000000000068 /* mac/ConnectorState.swift */,
 				000000000000000000000069 /* mac/ConnectorUpdater.swift */,
-				00000000000000000000006A /* mac/ExternalService.swift */,
-				00000000000000000000006B /* mac/LegacyGatewayHandoff.swift */,
-				00000000000000000000006C /* mac/NotesyService.swift */,
-				00000000000000000000006D /* mac/PomeCameraHealth.swift */,
-				00000000000000000000006E /* mac/PomeCameraPreview.swift */,
-				00000000000000000000006F /* mac/PomeCameraService.swift */,
-				000000000000000000000070 /* mac/ReminderzModule.swift */,
-				000000000000000000000071 /* mac/Shared.swift */,
-				000000000000000000000072 /* mac/StoreAgentConfiguration.swift */,
+				00000000000000000000006A /* mac/EvenG2Service.swift */,
+				00000000000000000000006B /* mac/EvenG2View.swift */,
+				00000000000000000000006C /* mac/EventzModule.swift */,
+				00000000000000000000006D /* mac/EventzQueryRange.swift */,
+				00000000000000000000006E /* mac/ExternalService.swift */,
+				00000000000000000000006F /* mac/LegacyGatewayHandoff.swift */,
+				000000000000000000000070 /* mac/NotesyService.swift */,
+				000000000000000000000071 /* mac/PomeCameraHealth.swift */,
+				000000000000000000000072 /* mac/PomeCameraPreview.swift */,
+				000000000000000000000073 /* mac/PomeCameraService.swift */,
+				000000000000000000000074 /* mac/ReminderzModule.swift */,
+				000000000000000000000075 /* mac/SetupStep.swift */,
+				000000000000000000000076 /* mac/Shared.swift */,
+				000000000000000000000077 /* mac/StoreAgentConfiguration.swift */,
 				00000000000000000000012C /* Resources/ACKNOWLEDGMENTS.md */,
 				00000000000000000000012D /* Resources/Beepster */,
-				00000000000000000000012E /* Resources/LICENSE.txt */,
-				00000000000000000000012F /* Resources/Notesy */,
-				000000000000000000000130 /* Resources/Organik.icns */,
-				000000000000000000000131 /* Resources/PRIVACY.md */,
-				000000000000000000000132 /* Resources/PrivacyInfo.xcprivacy */,
-				000000000000000000000133 /* Resources/Reminderz-LICENSE.txt */,
-				000000000000000000000134 /* Resources/container-migration.plist */,
+				00000000000000000000012E /* Resources/EvenG2 */,
+				00000000000000000000012F /* Resources/LICENSE.txt */,
+				000000000000000000000130 /* Resources/Notesy */,
+				000000000000000000000131 /* Resources/Organik.icns */,
+				000000000000000000000132 /* Resources/PRIVACY.md */,
+				000000000000000000000133 /* Resources/PrivacyInfo.xcprivacy */,
+				000000000000000000000134 /* Resources/Reminderz-LICENSE.txt */,
+				000000000000000000000135 /* Resources/Speech */,
+				000000000000000000000136 /* Resources/container-migration.plist */,
 				000000000000000000000004 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -120,10 +141,10 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		03764F323050F13900B09212 /* Products */ = {
+		03055B19305444AD001A15A2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				03764F363050F13B00B09212 /* Pome Cameras.app */,
+				03055B1D305444AE001A15A2 /* Pome Cameras.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -170,7 +191,7 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 03764F323050F13900B09212 /* Products */;
+					ProductGroup = 03055B19305444AD001A15A2 /* Products */;
 					ProjectRef = 0000000000000000000003E8 /* camera/CameraProbe.xcodeproj */;
 				},
 			);
@@ -182,11 +203,11 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		03764F363050F13B00B09212 /* Pome Cameras.app */ = {
+		03055B1D305444AE001A15A2 /* Pome Cameras.app */ = {
 			isa = PBXReferenceProxy;
 			fileType = wrapper.application;
 			path = "Pome Cameras.app";
-			remoteRef = 03764F353050F13B00B09212 /* PBXContainerItemProxy */;
+			remoteRef = 03055B1C305444AE001A15A2 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -198,13 +219,15 @@
 			files = (
 				000000000000000000000190 /* Resources/ACKNOWLEDGMENTS.md in Resources */,
 				000000000000000000000191 /* Resources/Beepster in Resources */,
-				000000000000000000000192 /* Resources/LICENSE.txt in Resources */,
-				000000000000000000000193 /* Resources/Notesy in Resources */,
-				000000000000000000000194 /* Resources/Organik.icns in Resources */,
-				000000000000000000000195 /* Resources/PRIVACY.md in Resources */,
-				000000000000000000000196 /* Resources/PrivacyInfo.xcprivacy in Resources */,
-				000000000000000000000197 /* Resources/Reminderz-LICENSE.txt in Resources */,
-				000000000000000000000198 /* Resources/container-migration.plist in Resources */,
+				000000000000000000000192 /* Resources/EvenG2 in Resources */,
+				000000000000000000000193 /* Resources/LICENSE.txt in Resources */,
+				000000000000000000000194 /* Resources/Notesy in Resources */,
+				000000000000000000000195 /* Resources/Organik.icns in Resources */,
+				000000000000000000000196 /* Resources/PRIVACY.md in Resources */,
+				000000000000000000000197 /* Resources/PrivacyInfo.xcprivacy in Resources */,
+				000000000000000000000198 /* Resources/Reminderz-LICENSE.txt in Resources */,
+				000000000000000000000199 /* Resources/Speech in Resources */,
+				00000000000000000000019A /* Resources/container-migration.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -237,15 +260,20 @@
 				0000000000000000000000CB /* mac/BundledGatewayRuntime.swift in Sources */,
 				0000000000000000000000CC /* mac/ConnectorState.swift in Sources */,
 				0000000000000000000000CD /* mac/ConnectorUpdater.swift in Sources */,
-				0000000000000000000000CE /* mac/ExternalService.swift in Sources */,
-				0000000000000000000000CF /* mac/LegacyGatewayHandoff.swift in Sources */,
-				0000000000000000000000D0 /* mac/NotesyService.swift in Sources */,
-				0000000000000000000000D1 /* mac/PomeCameraHealth.swift in Sources */,
-				0000000000000000000000D2 /* mac/PomeCameraPreview.swift in Sources */,
-				0000000000000000000000D3 /* mac/PomeCameraService.swift in Sources */,
-				0000000000000000000000D4 /* mac/ReminderzModule.swift in Sources */,
-				0000000000000000000000D5 /* mac/Shared.swift in Sources */,
-				0000000000000000000000D6 /* mac/StoreAgentConfiguration.swift in Sources */,
+				0000000000000000000000CE /* mac/EvenG2Service.swift in Sources */,
+				0000000000000000000000CF /* mac/EvenG2View.swift in Sources */,
+				0000000000000000000000D0 /* mac/EventzModule.swift in Sources */,
+				0000000000000000000000D1 /* mac/EventzQueryRange.swift in Sources */,
+				0000000000000000000000D2 /* mac/ExternalService.swift in Sources */,
+				0000000000000000000000D3 /* mac/LegacyGatewayHandoff.swift in Sources */,
+				0000000000000000000000D4 /* mac/NotesyService.swift in Sources */,
+				0000000000000000000000D5 /* mac/PomeCameraHealth.swift in Sources */,
+				0000000000000000000000D6 /* mac/PomeCameraPreview.swift in Sources */,
+				0000000000000000000000D7 /* mac/PomeCameraService.swift in Sources */,
+				0000000000000000000000D8 /* mac/ReminderzModule.swift in Sources */,
+				0000000000000000000000D9 /* mac/SetupStep.swift in Sources */,
+				0000000000000000000000DA /* mac/Shared.swift in Sources */,
+				0000000000000000000000DB /* mac/StoreAgentConfiguration.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -275,7 +303,7 @@
 				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/mac/AppStore/Connector.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 57;
 				DEVELOPMENT_TEAM = 4N9LJD597R;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -309,7 +337,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 40;
+				CURRENT_PROJECT_VERSION = 57;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 4N9LJD597R;
 				ENABLE_APP_SANDBOX = YES;
