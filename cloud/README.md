@@ -2,10 +2,12 @@
 
 This directory is the self-contained Store build input. Open `OrganikConnector.xcodeproj` and select the shared **OrganikConnector** scheme and the macOS product **Organik Apps Pebble Connector** (`org.organikapps.pebbleconnector`). The Catalyst camera target is an explicit project dependency with its registered HomeKit and App Group capabilities. Both targets use automatic signing for team `4N9LJD597R`.
 
-Configure Xcode Cloud with stable **macOS 26** and **Xcode 26.6 (17F113)**, a clean environment, restricted editing, and an **Archive — TestFlight and App Store** action. Set the next build number to **57 or higher**. Do not select beta macOS or beta Xcode: Apple rejected those build environments. No build-provenance fields are overridden. Set no signing-certificate or private-key secrets; use Apple-managed signing.
+Configure Xcode Cloud with stable **macOS 26** and **Xcode 26.6 (17F113)**, a clean environment, restricted editing, and an **Archive — TestFlight and App Store** action. Set the next build number to **58 or higher**. Do not select beta macOS or beta Xcode: Apple rejected those build environments. No build-provenance fields are overridden. Set no signing-certificate or private-key secrets; use Apple-managed signing.
 
 The executable `ci_scripts/ci_post_clone.sh` runs before the archive, downloads checksum-pinned Node 24.15.0 runtimes, installs only locked production npm dependencies without lifecycle scripts, and builds the small native helper tools for both Mac architectures. The main target copies the Catalyst app and signs its inherited tools with Xcode's selected identity and their committed entitlements. The Catalyst target signs its AppKit window-host bundle and requests its own HomeKit/App Group profile. No installed Connector, sibling checkout or user configuration is required.
 
 Committed resource snapshots contain the reviewed gateway, Notesy renderer/watch assets, icons, fonts and their licenses. Runtime binaries, node_modules, local build outputs, signing profiles and credentials are excluded from Git. First-run cloud provisioning/signing must still be verified in the actual cloud archive; local unsigned build/archive checks do not prove cloud signing or App Store acceptance.
 
 The next release pins the latest local57 source in `ACCEPTED-SOURCE.json`. Pome uses direct Apple Home for controls and cameras; no Itsyhome dependency. See `NETWORK-SERVICES.md` for the incoming-server entitlement explanation and reviewer steps.
+
+Cloud58 corrects the generated FluidAudio resource-only bundle metadata and audits declared executables before upload. Installed local57 is unchanged.

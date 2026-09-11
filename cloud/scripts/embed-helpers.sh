@@ -13,3 +13,6 @@ if [[ ${CODE_SIGNING_ALLOWED:-YES} != NO ]]; then
   codesign --force --options runtime --sign "$identity" --entitlements "$SRCROOT/mac/AppStore/InheritedTool.entitlements" "$binary"
  done
 fi
+
+# Fail archive before upload if any nested bundle advertises absent code.
+python3 "$SRCROOT/../scripts/check-bundle-executables.py" "$TARGET_BUILD_DIR/$WRAPPER_NAME"

@@ -13,3 +13,6 @@ done
 if [ -f "$resources/Speech/FluidAudio-LICENSE.txt" ]; then chmod u+w "$resources/Speech/FluidAudio-LICENSE.txt"; fi
 cp "$root/speech/.build/checkouts/FluidAudio/LICENSE" "$resources/Speech/FluidAudio-LICENSE.txt"
 cp "$root/speech/NOTICE.txt" "$resources/Speech/NOTICE.txt"
+
+# SwiftPM resource bundles must not advertise a nonexistent executable.
+python3 "$root/scripts/check-bundle-executables.py" "$resources/Speech" --repair-fluid-resources

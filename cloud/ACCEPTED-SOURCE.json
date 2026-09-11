@@ -1,10 +1,25 @@
 {
   "baselineInstalledBuild": "56",
   "cameraProvenance": "CacheTest and CameraWindowHost match accepted camera50 frozen source; latest installed56 helper runtime retained locally. Other camera source copied from maintained checkout.",
-  "cloudBuildNumber": 57,
+  "cloudBuildNumber": 58,
   "g2Acceptance": "User accepted basic microphone/transcription, camera and room controls on0.1.11. Broader language and0.1.12 UI pending.",
   "localBuild": "57",
   "nativeSource": "Working tree copied byte-for-byte; exact hashes below",
+  "packagingFix": {
+    "buildUUID": "50b27314-a38c-416f-9b11-9d3262e37d52",
+    "change": "Remove invalid CFBundleExecutable only from known FluidAudio resource bundle during staging; audit declared executable existence in all nested bundles before archive completion.",
+    "previousCloudBuild": 57,
+    "runtime": "local57 unchanged",
+    "sourceSHA256": {
+      "cloud/scripts/embed-helpers.sh": "4eb6f947f76701d582e0f868334c2c59c4e27d2e5f768922d5c8cfe8c31f00b7",
+      "scripts/check-bundle-executables.py": "da11b348099f2c41bf61178e231df273bdb16f816da12e4272994654f4388a99",
+      "scripts/stage-speech.sh": "6e055e19d665eb9d3d6a3758dd4f57aebcea24e645ebf331aefa894056dc1db9",
+      "tests/test_bundle_executables.py": "fc4bbc7ceab02f37d4c0f615010e5b659d0e9c666ea57652b187e84c191315fa"
+    },
+    "status": "archive/export passed; upload failed90261",
+    "tests": "known malformed resource repair, preservation of other metadata, reject unknown missing executable, accept real helper executable",
+    "validation": "Fresh speech staging regenerated malformed metadata and repaired it; full copied-app executable audit and deep signature verification passed. Live57 untouched; Cloud58 export/upload still pending."
+  },
   "sha256": {
     "cloud/Resources/ACKNOWLEDGMENTS.md": "8e98ce3c95b3b5caf639950743bd1ec16a664d6a1bf76ca14d3e5e7280677569",
     "cloud/Resources/Beepster/Beepster Contacts.app/Contents/Info.plist": "455a5061d5c3d2db9eecafb1e077add2377fc0b7e1d4d655ea349e97ba71ff58",
