@@ -4,10 +4,35 @@ struct ConnectorWindow: View {
     @ObservedObject var model: ConnectorModel
     @AppStorage("connector.platform") private var platform = "pebble"
     private func deviceButton(_ title: String, value: String) -> some View {
-        Button(title) { platform = value }
-            .buttonStyle(.borderedProminent)
-            .tint(platform == value ? Color.accentColor : Color.gray.opacity(0.35))
-            .accessibilityValue(platform == value ? "Selected" : "Not selected")
+        Button { platform = value } label: {
+            Text(title).font(.body.weight(.semibold))
+                .foregroundStyle(platform == value ? Color.white : Color.primary)
+                .padding(.horizontal, 14).padding(.vertical, 7)
+                .background {
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(platform == value ? Color(red: 0.16, green: 0.48, blue: 0.20) : Color.secondary.opacity(0.12))
+                }
+                .overlay { RoundedRectangle(cornerRadius: 7).strokeBorder(Color.secondary.opacity(0.25), lineWidth: 1) }
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(platform == value ? "Selected" : "Not selected")
+    }
+    private var header: some View {
+        HStack(spacing: 18) {
+            Text("Organik Apps Connector").font(.headline).lineLimit(1)
+            HStack(spacing: 8) {
+                deviceButton("Pebble", value: "pebble")
+                deviceButton("Even G2", value: "even")
+            }
+        }.fixedSize()
+    }
+    @ToolbarContentBuilder private var deviceToolbar: some ToolbarContent {
+        if #available(macOS 26.0, *) {
+            ToolbarItem(placement: .principal) { header }
+                .sharedBackgroundVisibility(.hidden)
+        } else {
+            ToolbarItem(placement: .principal) { header }
+        }
     }
     var body: some View {
         Group {
@@ -15,17 +40,7 @@ struct ConnectorWindow: View {
             else { PebbleConnectorWindow(model: model) }
         }
         .frame(minWidth: 820, minHeight: 620)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                HStack(spacing: 14) {
-                    Text("Organik Apps Connector").font(.headline).lineLimit(1)
-                    HStack(spacing: 6) {
-                        deviceButton("Pebble", value: "pebble")
-                        deviceButton("Even G2", value: "even")
-                    }
-                }.fixedSize()
-            }
-        }
+        .toolbar { deviceToolbar }
 
         .environmentObject(model)
         .sheet(isPresented: Binding(get: { model.repairPanel != nil }, set: { if !$0 { model.repairPanel = nil } })) {
