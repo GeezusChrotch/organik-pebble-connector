@@ -264,11 +264,12 @@ struct ConnectorDetail<Connection: View, Troubleshooting: View>: View {
     let busy: Bool
     let message: String
     var startWithSetup = false
+    var embedded = false
     @State private var section = "Status"
     @ViewBuilder var connection: () -> Connection
     @ViewBuilder var troubleshooting: () -> Troubleshooting
     var body: some View {
-        ScrollView {
+        ConnectorScrollView(embedded: embedded) {
             VStack(alignment: .leading, spacing: 22) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(page.rawValue).font(.largeTitle.weight(.semibold))
@@ -299,7 +300,7 @@ struct ConnectorDetail<Connection: View, Troubleshooting: View>: View {
                 }
                 Text("Keep this Mac awake and Tailscale connected on both Mac and phone. Closing the window keeps enabled services running.")
                     .font(.caption).foregroundStyle(.secondary)
-            }.padding(28).frame(maxWidth: 850, alignment: .leading).frame(maxWidth: .infinity, alignment: .leading)
+            }
         }.onAppear { if startWithSetup || requirements.allSatisfy({ !$0.ready }) { section = "Setup" } }
     }
 }
@@ -343,7 +344,7 @@ struct BeepsterView: View {
     var isEvenG2 = false
     private func ready(_ id: String) -> Bool { module.requirements.first { $0.id == id }?.ready == true }
     var body: some View {
-        ConnectorDetail(page: .beepster, requirements: module.requirements + module.agentRequirements, busy: module.busy, message: module.message) {
+        ConnectorDetail(page: .beepster, requirements: module.requirements + module.agentRequirements, busy: module.busy, message: module.message, embedded: isEvenG2) {
             SetupStep(number: 1, title: "Connect Beeper Desktop", detail: "Open Beeper Desktop and sign in. In Beeper Settings → Beeper Desktop API, enable Allow connections and create a token for Beepster. Connect Beeper asks for that token if needed, requests Contacts access for names, and starts the Mac connection. Existing tokens and permissions are reused.") {
 #if APP_STORE
                 if !module.serviceConflictMessage.isEmpty { Text(module.serviceConflictMessage).font(.callout) }
@@ -495,7 +496,7 @@ struct ConnectorSettings: View {
     @State private var loginEnabled = SMAppService.mainApp.status == .enabled
     @State private var loginMessage = ""
     var body: some View {
-        ScrollView {
+        ConnectorScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 Text("Settings").font(.largeTitle.weight(.semibold))
                 EditionTransitionView(model: model)
@@ -544,7 +545,7 @@ struct ConnectorSettings: View {
                         if !loginMessage.isEmpty { Text(loginMessage).font(.callout).foregroundStyle(.secondary) }
                     }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
                 }
-            }.padding(28).frame(maxWidth: 850).frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 }
@@ -563,10 +564,14 @@ struct PebbleConnectorWindow: View {
         } detail: {
             switch model.selection ?? .overview {
             case .overview:
-                ScrollView {
+                ConnectorScrollView {
                     VStack(alignment: .leading, spacing: 22) {
                         Text("Overview").font(.largeTitle.weight(.semibold))
-                        if model.showEditionTransition { EditionTransitionView(model: model) }
+                        if model.showEditionTransition {
+                            DisclosureGroup("Switching between GitHub and the App Store") {
+                                EditionTransitionView(model: model).padding(.top, 10)
+                            }
+                        }
                         Text("Choose an app in the sidebar for step-by-step setup. Each red status explains the problem. Fix opens the relevant action directly.").foregroundStyle(.secondary)
                         GroupBox {
                             HStack(alignment: .top, spacing: 18) {
@@ -593,7 +598,7 @@ struct PebbleConnectorWindow: View {
                                 }.padding(12)
                             }
                         }
-                    }.padding(28).frame(maxWidth: 850).frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             case .stone: NotesyView(service: model.stone)
             case .beepster:
@@ -718,6 +723,7 @@ struct PebbleConnectorWindow: View {
                 if delegate.model == nil { delegate.model = model; model.start(); delegate.configurePresentation(model) }
             }
         }.defaultSize(width: 970, height: 780)
+        .windowResizability(.contentMinSize)
         .commands {
             ConnectorWindowCommands()
             CommandGroup(after: .appInfo) {

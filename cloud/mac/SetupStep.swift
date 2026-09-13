@@ -8,7 +8,7 @@ struct SetupStep<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("\(number). \(title)").font(.headline)
-            Text(detail).font(.callout).foregroundStyle(.secondary)
+            Text(detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             content()
         }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 8)
     }

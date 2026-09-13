@@ -4,23 +4,24 @@ struct ConnectorWindow: View {
     @ObservedObject var model: ConnectorModel
     @AppStorage("connector.platform") private var platform = "pebble"
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
+        Group {
+            if platform == "even" { EvenG2ConnectorWindow(model: model) }
+            else { PebbleConnectorWindow(model: model) }
+        }
+        .frame(minWidth: 820, minHeight: 620)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
                 Picker("Device", selection: $platform) {
                     Text("Pebble").tag("pebble")
                     Text("Even G2").tag("even")
-                }.pickerStyle(.menu).frame(width: 220)
-                Spacer()
-            }.padding(.horizontal, 16).padding(.vertical, 8)
-            Divider()
-            if platform == "even" { EvenG2ConnectorWindow(model: model) }
-            else { PebbleConnectorWindow(model: model) }
-        }.frame(minWidth:820,minHeight:660)
+                }.pickerStyle(.menu).fixedSize()
+            }
+        }
         .environmentObject(model)
         .sheet(isPresented: Binding(get: { model.repairPanel != nil }, set: { if !$0 { model.repairPanel = nil } })) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack { Text("Resolve connection issue").font(.title2); Spacer(); Button("Done") { model.repairPanel = nil } }
-                ScrollView {
+                ConnectorScrollView {
                     if let panel = model.repairPanel, panel.hasPrefix("agent-"), let module = model.beepster {
                         AgentSetupView(module: module, provider: String(panel.dropFirst(6)))
                     } else if model.repairPanel == "cameras" { PomeCameraSetup(service: model.cameras) }
@@ -63,7 +64,7 @@ struct EvenG2ConnectorWindow: View {
                          prepareDictation: model.even.dictationReady)
     }
     private var overview: some View {
-        ScrollView {
+        ConnectorScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 Text("Overview").font(.largeTitle.weight(.semibold))
                 Text("Choose an app in the sidebar for setup. Fix opens the relevant action directly.").foregroundStyle(.secondary)
@@ -89,7 +90,7 @@ struct EvenG2ConnectorWindow: View {
                         }.padding(10).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-            }.padding(28).frame(maxWidth: 850).frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 }
@@ -101,7 +102,7 @@ struct EvenG2View: View {
     private func startG2() { service.start(home: home, beepster: model.beepster, eventz: model.eventz, connectHome: app == "pome", prepareDictation: service.dictationReady) }
     let app: String
     var body: some View {
-        ScrollView {
+        ConnectorScrollView {
             VStack(alignment:.leading,spacing:22) {
                 Text(app == "dayframe" ? "DayFrame" : app == "pome" ? "Pome" : "Beepster").font(.largeTitle.weight(.semibold))
                 if app == "pome" && !ConnectorDistribution.pomeAvailable { PomeComingSoonView() }
@@ -157,7 +158,7 @@ struct EvenG2View: View {
                 }
                 Text("App preferences are in each app’s Even phone settings. Beepster also has a glasses Settings menu for reading and media options. \(ConnectorDistribution.pomeAvailable ? "Pome uses Apple Home through this edition." : ConnectorDistribution.pomeNotice)").font(.callout).foregroundStyle(.secondary)
                 }
-            }.padding(28).frame(maxWidth:850).frame(maxWidth:.infinity,alignment:.leading)
+            }
         }
     }
 }
