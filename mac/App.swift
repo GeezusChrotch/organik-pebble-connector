@@ -193,7 +193,7 @@ import EventKit
                     ["id": $0.id, "title": $0.title, "ready": $0.ready, "checking": $0.checking, "detail": $0.id == "route" ? $0.detail : ""] as [String: Any]
                 }] as [String: Any]
             }
-            let windows = NSApp.windows.filter { $0.identifier?.rawValue == "connector" || $0.title == "Organik Apps Pebble Connector" }
+            let windows = NSApp.windows.filter { $0.identifier?.rawValue == "connector" || $0.title == "Organik Apps Connector" }
             let snapshot: [String: Any] = ["pid": ProcessInfo.processInfo.processIdentifier,
                 "checkedAt": ISO8601DateFormatter().string(from: Date()), "apps": checks,
                 "tailscale": ["ready": self.tailscale.ready, "checking": self.tailscale.checking, "detail": self.tailscale.detail],
@@ -685,7 +685,7 @@ struct PebbleConnectorWindow: View {
         }
     }
     @objc private func openConnector() {
-        if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "connector" }) ?? NSApp.windows.first(where: { $0.title == "Organik Apps Pebble Connector" }) {
+        if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "connector" }) ?? NSApp.windows.first(where: { $0.title == "Organik Apps Connector" }) {
             window.deminiaturize(nil)
             window.makeKeyAndOrderFront(nil)
         }
@@ -728,12 +728,13 @@ struct PebbleConnectorWindow: View {
         }
     }
     var body: some Scene {
-        Window("Organik Apps Pebble Connector", id: "connector") {
+        Window("Organik Apps Connector", id: "connector") {
             ConnectorWindow(model: model).onAppear {
                 if delegate.model == nil { delegate.model = model; model.start(); delegate.configurePresentation(model) }
             }
         }.defaultSize(width: 970, height: 780)
         .windowResizability(.contentMinSize)
+        .windowStyle(.hiddenTitleBar)
         .commands {
             ConnectorWindowCommands()
             CommandGroup(after: .appInfo) {

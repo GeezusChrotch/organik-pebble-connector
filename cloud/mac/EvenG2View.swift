@@ -3,6 +3,12 @@ import SwiftUI
 struct ConnectorWindow: View {
     @ObservedObject var model: ConnectorModel
     @AppStorage("connector.platform") private var platform = "pebble"
+    private func deviceButton(_ title: String, value: String) -> some View {
+        Button(title) { platform = value }
+            .buttonStyle(.borderedProminent)
+            .tint(platform == value ? Color.accentColor : Color.gray.opacity(0.35))
+            .accessibilityValue(platform == value ? "Selected" : "Not selected")
+    }
     var body: some View {
         Group {
             if platform == "even" { EvenG2ConnectorWindow(model: model) }
@@ -10,13 +16,17 @@ struct ConnectorWindow: View {
         }
         .frame(minWidth: 820, minHeight: 620)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Picker("Device", selection: $platform) {
-                    Text("Pebble").tag("pebble")
-                    Text("Even G2").tag("even")
-                }.pickerStyle(.menu).fixedSize()
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 14) {
+                    Text("Organik Apps Connector").font(.headline).lineLimit(1)
+                    HStack(spacing: 6) {
+                        deviceButton("Pebble", value: "pebble")
+                        deviceButton("Even G2", value: "even")
+                    }
+                }.fixedSize()
             }
         }
+
         .environmentObject(model)
         .sheet(isPresented: Binding(get: { model.repairPanel != nil }, set: { if !$0 { model.repairPanel = nil } })) {
             VStack(alignment: .leading, spacing: 16) {
