@@ -23,7 +23,7 @@ PYPOME
 cp "$root/mac/Info.plist" "$app/Contents/Info.plist"
 python3 - "$app" <<'PY'
 import sys,plistlib,pathlib
-p=pathlib.Path(sys.argv[1])/'Contents/Info.plist';d=plistlib.loads(p.read_bytes());d['NotesyPackageVersion']='1.4.8';d.update(CFBundleShortVersionString='1.0.0',CFBundleVersion='99',OrganikUpgradeModel='owned-v1',SUEnableInstallerLauncherService=True,OrganikDistribution='direct-download',OrganikPomeAvailable=False)
+p=pathlib.Path(sys.argv[1])/'Contents/Info.plist';d=plistlib.loads(p.read_bytes());d['NotesyPackageVersion']='1.4.8';d.update(CFBundleShortVersionString='1.0.0',CFBundleVersion='101',OrganikUpgradeModel='owned-v1',SUEnableInstallerLauncherService=True,OrganikDistribution='direct-download',OrganikPomeAvailable=False)
 for k in ['OrganikCameraAppGroup','OrganikLocalCameraPreview','NSHomeKitUsageDescription']:d.pop(k,None)
 p.write_bytes(plistlib.dumps(d))
 PY
