@@ -21,3 +21,7 @@ Every Connector change must apply to both editions by default. Keep shared behav
 - GitHub edition excludes Pome functionality and shows “Pome coming soon to the App Store”. It can be released when ready without waiting for Apple approval.
 - Build and validate both configurations for shared changes. Report each edition’s source, build, installation, and publication status separately. Updating Store source does not update an already-submitted build.
 - Preserve submitted artifacts; coordinate a new Store candidate rather than modifying submission history.
+
+## Cross-task Connector approval freeze
+
+Follow /Users/Josh/AGENTS.md: explain any requested Connector dependency and wait for Josh’s explicit OK before implementing it. Only the currently authorized final Store submission and Pome-enabled local switch proceed during this freeze.
