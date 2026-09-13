@@ -1,7 +1,7 @@
 # Shared Connector readiness work
 
-Public release remains blocked until the exact candidates pass runtime acceptance.
-Store submission 97 and installed GitHub build 99 have not been replaced by this source change.
+Josh authorized the final latest Store submission and release on 2026-09-13. Exact-candidate validation still applies; additional Connector-dependent development requires explicit approval under AGENTS.md.
+Store submission 97 remains unchanged until the coordinator replaces it. GitHub build 106 is the latest installed build at the start of the authorized switch to Pome-enabled local build 107.
 
 ## Interface
 
@@ -11,7 +11,7 @@ Edition changes have a persistent checklist in Settings, surfaced on Overview fo
 
 ## Data and permissions
 
-No new recipient, data collection, network route or permission entitlement is introduced by these screens. Existing folder selections remain explicit system pickers. Contacts/Calendars/Reminders Fix requests first-time access only when undetermined; existing denials open the relevant Privacy pane. Home access opens the HomeKit Privacy pane. Optional agent editing uses existing provider-scoped configuration and Keychain storage. Review reference: https://developer.apple.com/design/human-interface-guidelines/privacy (rechecked 2026-09-13).
+No new recipient, data collection, network route or permission entitlement is introduced by these screens. Existing folder selections remain explicit system pickers. Calendar Fix rechecks EventKit authorization and requests full access again if unavailable; an unsuccessful request opens Calendar Privacy with a clear explanation. Calendar permission status updates independently of network checks and on app activation/EventKit notifications. Contacts and Reminders use the relevant permission request or Privacy pane. Home access opens the HomeKit Privacy pane. Optional agent editing uses existing provider-scoped configuration and Keychain storage. Review reference: https://developer.apple.com/design/human-interface-guidelines/privacy (rechecked 2026-09-13).
 
 ## Required transition acceptance
 
@@ -21,4 +21,4 @@ No new recipient, data collection, network route or permission entitlement is in
 4. Confirm existing pairing and settings survive; reselect inaccessible scoped folders through the picker. Verify optional Hermes/OpenClaw configuration and hidden connector preferences. Set up and test Pome separately.
 5. Close/reopen, quit/relaunch and reboot. Verify a single installed app/login owner, no obsolete service, and real phone/watch/glasses delivery.
 
-Current status: source typechecks for Store and GitHub compile conditions; upgrade preflight tests pass. Exact signed upgrade and Store transition, first-run/denied UI, restart and device checks remain pending. Neither this checklist nor a green Mac endpoint substitutes for those tests. Any discovered migration defect requires an implemented repair before release.
+Current status: both compile conditions pass; upgrade preflight tests and canonical same-edition installation regression checks through 106 pass. Installed 104 recognized the previously approved Calendar and Contacts permissions after restart; fresh grant/revoke-without-restart still needs acceptance. Josh accepted the separate title and green device-button appearance in 106. Exact signed upgrade and Store transition, first-run/denied UI, restart and device checks remain pending. Neither this checklist nor a green Mac endpoint substitutes for those tests. Any discovered migration defect requires an implemented repair before release.
