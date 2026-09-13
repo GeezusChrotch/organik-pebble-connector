@@ -92,6 +92,6 @@ This candidate includes Pome Apple Home controls and cameras. The separate direc
 
 ## Even G2 review packages
 
-The exact companion packages bundled with this candidate are [Pome0.1.33](cloud/Resources/EvenG2/pome/dist/pome-0.1.33.ehpk), [Beepster0.1.18](cloud/Resources/EvenG2/beepster/dist/beepster-0.1.18.ehpk), and [DayFrame0.1.8](cloud/Resources/EvenG2/dayframe/dist/dayframe-0.1.8.ehpk). View this guide at the frozen Store97 commit to keep these links tied to the submitted source.
+The exact companion packages bundled with this candidate are [Pome0.1.33](cloud/Resources/EvenG2/pome/dist/pome-0.1.33.ehpk), [Beepster0.1.18](cloud/Resources/EvenG2/beepster/dist/beepster-0.1.18.ehpk), and [DayFrame0.1.10](cloud/Resources/EvenG2/dayframe/dist/dayframe-0.1.10.ehpk). View this guide at the frozen Store97 commit to keep these links tied to the submitted source.
 
 These are companion packages for compatible glasses and the Even phone app. Their personal Beta publication does not make them publicly installable for every account. Review access must include an actual supported installation arrangement; downloading a package alone does not grant Beta access. The Connector can be set up on the Mac without wearable hardware, but end-to-end wearable features require that hardware.
