@@ -3,16 +3,27 @@ import {deviceIcon,type Icon} from './icons';
 import {API} from './api';
 import {Display} from './display';
 import {stateText,toggleTypes,colors,colorCommand,voiceCommand,pcmToWav,type Device,type Scene,type Room,type Camera,type Snapshot,type Settings,type Command} from './model';
-import {frameBMP,type CameraFrame} from './images';
+import {ditherCameraBMP,frameBMP,type CameraFrame} from './images';
 interface Row {label:string;icon?:Icon;key?:string;run:()=>Promise<void>|void}
-interface Page {title:string;rows:Row[];index:number;image?:Uint8Array;caption?:string}
+interface Page {title:string;titleIcon?:Icon;rows:Row[];index:number;image?:Uint8Array;caption?:string}
 export class Pome {
  snapshot:Snapshot={rooms:[],devices:[],scenes:[],cameras:[]};private pages:Page[]=[];private busy=false;private recording=false;private chunks:Uint8Array[]=[];private recordingBytes=0;private timer?:ReturnType<typeof setTimeout>;private operation=0;private notice='';private returnAfterVoice?:Page[];
+ saveSettings:(settings:Settings)=>Promise<void>=async()=>{throw new Error('Settings are still loading.');};
  onSnapshot:()=>void=()=>{};
- constructor(public api:API,private display:Display){display.onDictate=()=>void this.beginRecording();display.onInput=t=>void this.input(t);display.onAudio=pcm=>{if(this.recording){this.recordingBytes+=pcm.length;if(this.recordingBytes<=32000*120)this.chunks.push(pcm);else void this.finishRecording();}};display.onError=m=>{this.notice=m;};}
+ constructor(public api:API,private display:Display){display.onFavoriteUnavailable=()=>{this.notice='Select a room, scene, device or camera to pin';this.render();};display.onFavorite=f=>void this.setFavorite(f.key,!f.pinned);display.onDictate=()=>void this.beginRecording();display.onInput=t=>void this.input(t);display.onAudio=pcm=>{if(this.recording){this.recordingBytes+=pcm.length;if(this.recordingBytes<=32000*120)this.chunks.push(pcm);else void this.finishRecording();}};display.onError=m=>{this.notice=m;};}
  private get page(){return this.pages.at(-1)!;}
- private render(){const p=this.page;if(!p)return;const start=Math.floor(p.index/5)*5;this.display.show({title:(this.api.demo?'DEMO · ':'')+p.title,lines:p.rows.slice(start,start+5).map((r,i)=>(p.index===start+i?'> ':'  ')+(r.label.length>29?r.label.slice(0,28)+'…':r.label)),icons:p.rows.slice(start,start+5).map(r=>r.icon),footer:this.notice||p.caption||`${p.index+1}/${p.rows.length} · Tap select · Double tap back`,image:p.image});}
- private push(title:string,rows:Row[],image?:Uint8Array,caption?:string){this.pages.push({title,rows:rows.length?rows:[{label:'Nothing here yet',run:()=>this.back()}],index:0,image,caption});this.notice='';this.render();}
+ private render(){const p=this.page;if(!p)return;const start=Math.floor(p.index/5)*5;this.display.show({titleIcon:p.titleIcon||'scene',title:(this.api.demo?'DEMO · ':'')+p.title,lines:p.rows.slice(start,start+5).map((r,i)=>(p.index===start+i?'> ':'  ')+(r.label.length>29?r.label.slice(0,28)+'…':r.label)),icons:p.rows.slice(start,start+5).map(r=>r.icon),footer:this.notice||p.caption||`${p.index+1}/${p.rows.length} · Tap select · Double tap back`,image:p.image,favorite:p.rows[p.index]?.key?{key:p.rows[p.index].key!,pinned:this.api.settings.pins.includes(p.rows[p.index].key!)}:undefined});}
+ private push(title:string,rows:Row[],image?:Uint8Array,caption?:string,titleIcon?:Icon){const headingIcon=titleIcon||this.page?.rows[this.page.index]?.icon||this.page?.titleIcon||'scene';this.pages.push({title,titleIcon:headingIcon,rows:rows.length?rows:[{label:'Nothing here yet',run:()=>this.back()}],index:0,image,caption});this.notice='';this.render();}
+ async setFavorite(key:string,pinned:boolean){
+  if(this.busy||this.recording||!this.entityRow(key))return;
+  await this.perform(async()=>{
+   const settings={...this.api.settings,pins:pinned?[...new Set([...this.api.settings.pins,key])]:this.api.settings.pins.filter(k=>k!==key)};
+   await this.saveSettings(settings);Object.assign(this.api.settings,settings);
+   const pages=this.pages,index=this.page.index;this.home();pages[0]=this.pages[0];this.pages=pages;
+   this.page.index=Math.min(index,this.page.rows.length-1);
+   this.notice=pinned?'Pinned to favorites':'Unpinned from favorites';this.onSnapshot();
+  },'Saving favorite…');
+ }
  private async perform(work:()=>Promise<void>,label='Loading…'){
   if(this.busy)return;this.busy=true;const operation=++this.operation;this.notice=label;if(label!=='Transcribing…')this.render();
   try{await work();if(operation===this.operation){if(this.notice===label)this.notice='';this.render();}}catch(e){this.notice=e instanceof Error?e.message:'Request failed';this.render();}finally{this.busy=false;}
@@ -30,26 +41,40 @@ export class Pome {
   if(section==='dictation'&&visible(section))rows.push({icon:'voice',label:'Dictate a command',run:()=>this.beginRecording()});
   }
   rows.push({icon:'refresh',label:'Refresh home',run:()=>this.reload()});this.pages=[{title:'Pome',rows,index:0}];this.notice='';this.render();}
- private entityRow(key:string):Row|undefined {const [kind,id]=key.split(':');if(kind==='device'){const d=this.snapshot.devices.find(d=>d.serviceId===id);if(d)return this.deviceRow(d);}if(kind==='scene'){const s=this.snapshot.scenes.find(s=>s.id===id);if(s)return this.sceneRow(s);}if(kind==='room'){const r=this.snapshot.rooms.find(r=>r.id===id);if(r)return {icon:'room',label:r.name,run:()=>this.room(r)};}if(kind==='camera'){const c=this.snapshot.cameras.find(c=>c.id===id);if(c)return {icon:'camera',label:c.name,run:()=>this.camera(c)};}}
- private rooms(){const order=this.api.settings.roomOrder;const rooms=[...this.snapshot.rooms].sort((a,b)=>{const ai=order.indexOf(a.id),bi=order.indexOf(b.id);return (ai<0?999:ai)-(bi<0?999:bi)||a.name.localeCompare(b.name);});this.push('Rooms',rooms.map(r=>({icon:'room',label:r.name,run:()=>this.room(r)})));}
- private async room(room:Room){await this.perform(async()=>{const devices=await this.api.request<Device[]>('/home/info/'+encodeURIComponent(room.name));if(!Array.isArray(devices))throw new Error('Invalid room response');const rows=devices.map(d=>this.deviceRow(d));const lights=devices.filter(d=>d.type==='light');if(lights.length)rows.unshift({icon:'light',label:'All lights',run:()=>this.groupLights(room,lights)});const cameras=this.snapshot.cameras.filter(c=>c.roomId?c.roomId===room.id:c.room===room.name);if(cameras.length&&this.api.settings.showCameras)rows.unshift({icon:'camera',label:`Cameras (${cameras.length})`,run:()=>cameras.length===1?this.camera(cameras[0]):this.cameras(cameras)});this.push(room.name,rows);});}
+ private entityRow(key:string):Row|undefined {const colon=key.indexOf(':'),kind=key.slice(0,colon),id=key.slice(colon+1);if(kind==='device'){const d=this.snapshot.devices.find(d=>d.serviceId===id);if(d)return this.deviceRow(d);}if(kind==='scene'){const s=this.snapshot.scenes.find(s=>s.id===id);if(s)return this.sceneRow(s);}if(kind==='room'){const r=this.snapshot.rooms.find(r=>r.id===id);if(r)return {key:'room:'+r.id,icon:'room',label:r.name,run:()=>this.room(r)};}if(kind==='camera'){const c=this.snapshot.cameras.find(c=>c.id===id);if(c)return {key:'camera:'+c.id,icon:'camera',label:c.name,run:()=>this.camera(c)};}}
+ private rooms(){const order=this.api.settings.roomOrder;const rooms=[...this.snapshot.rooms].sort((a,b)=>{const ai=order.indexOf(a.id),bi=order.indexOf(b.id);return (ai<0?999:ai)-(bi<0?999:bi)||a.name.localeCompare(b.name);});this.push('Rooms',rooms.map(r=>({key:'room:'+r.id,icon:'room',label:r.name,run:()=>this.room(r)})));}
+ private async room(room:Room){await this.perform(async()=>{
+  const devices=await this.api.request<Device[]>('/home/info/'+encodeURIComponent(room.name));if(!Array.isArray(devices))throw new Error('Invalid room response');
+  const name=room.name.toLowerCase(),prefixes=[name];if(name.endsWith(' room'))prefixes.push(name.slice(0,-5));if(name==='control room')prefixes.push('cr');
+  const rows:Row[]=this.snapshot.scenes.filter(s=>prefixes.some(prefix=>s.name.toLowerCase()===prefix||s.name.toLowerCase().startsWith(prefix+' '))).sort((a,b)=>a.name.localeCompare(b.name)).map(s=>this.sceneRow(s));
+  const sensors=devices.filter(d=>d.type.endsWith('sensor'));
+  const labels:Record<string,string>={television:'TVs',light:'Lights',outlet:'Plugs',switch:'Switches',fan:'Fans',blinds:'Blinds',thermostat:'Thermostats',lock:'Locks',valve:'Valves',humidifier:'Humidifiers','air-purifier':'Air purifiers','garage-door':'Garage doors'};
+  const types=[...new Set(devices.filter(d=>!d.type.endsWith('sensor')).map(d=>d.type))].sort((a,b)=>a==='light'?-1:b==='light'?1:(labels[a]||a).localeCompare(labels[b]||b));
+  for(const type of types){const items=devices.filter(d=>d.type===type).sort((a,b)=>a.name.localeCompare(b.name));const label=labels[type]||type.replace(/-/g,' ').replace(/^./,c=>c.toUpperCase());
+   rows.push({icon:deviceIcon(type),label,run:()=>{const children=items.map(d=>this.deviceRow(d));if(type==='light')children.unshift({icon:'light',label:'All lights',run:()=>this.groupLights(room,items)});this.push(room.name+' · '+label,children,undefined,undefined,deviceIcon(type));}});
+  }
+  if(sensors.length)rows.push({icon:'sensor',label:'Sensors',run:()=>this.devices([...sensors].sort((a,b)=>a.name.localeCompare(b.name)),room.name+' · Sensors')});
+  const cameras=this.snapshot.cameras.filter(c=>c.roomId?c.roomId===room.id:c.room===room.name);if(cameras.length&&this.api.settings.showCameras)rows.push({icon:'camera',label:`Cameras (${cameras.length})`,run:()=>cameras.length===1?this.camera(cameras[0]):this.cameras(cameras)});
+  this.push(room.name,rows,undefined,undefined,'room');
+ });}
  private groupLights(room:Room,lights:Device[]){this.push(room.name+' · lights',[{label:'Color',run:()=>this.colorPicker(room.name+' · lights',lights)},{label:'Turn on',run:()=>this.command({label:'Turn room lights on',paths:lights.map(d=>'/home/on/'+encodeURIComponent(d.serviceId))})},{label:'Turn off',run:()=>this.command({label:'Turn room lights off',paths:lights.map(d=>'/home/off/'+encodeURIComponent(d.serviceId))})},...[25,50,75,100].map(n=>({label:`Brightness ${n}%`,run:()=>this.command({label:`Set lights to ${n}%`,skipped:lights.filter(d=>typeof d.state.brightness!=='number').length,paths:lights.filter(d=>typeof d.state.brightness==='number').map(d=>`/home/brightness/${n}/`+encodeURIComponent(d.serviceId))})}))]);}
  private scenes(){this.push('Scenes',this.snapshot.scenes.map(s=>this.sceneRow(s)));}
- private sceneRow(s:Scene):Row{return {icon:'scene',label:s.name,run:()=>this.confirm({label:'Run '+s.name,paths:['/home/scene/'+encodeURIComponent(s.id)]})};}
+ private sceneRow(s:Scene):Row{return {key:'scene:'+s.id,icon:'scene',label:s.name,run:()=>this.confirm({label:'Run '+s.name,paths:['/home/scene/'+encodeURIComponent(s.id)]})};}
  private devices(items:Device[],title:string){this.push(title,items.map(d=>this.deviceRow(d)));}
- private deviceRow(d:Device):Row{return {icon:deviceIcon(d.type),label:d.name+' · '+stateText(d),run:()=>this.device(d)};}
+ private deviceRow(d:Device):Row{return {key:'device:'+d.serviceId,icon:deviceIcon(d.type),label:d.name+' · '+stateText(d),run:()=>this.device(d)};}
  private async device(d:Device){await this.perform(async()=>{const fresh=await this.api.request<Device>('/home/info/'+encodeURIComponent(d.serviceId));this.showDevice(fresh,false);});}
  private showDevice(d:Device,replace:boolean){
   const id=encodeURIComponent(d.serviceId),rows:Row[]=[];
   const adjust=(action:string,value='')=>this.perform(async()=>{await this.api.request('/home/'+action+'/'+value+id,'POST');const fresh=await this.api.request<Device>('/home/info/'+id);this.showDevice(fresh,true);},'Applying…');
   if(d.reachable!==false){
-   if(toggleTypes.has(d.type))rows.push({label:d.state.on?'Turn off':'Turn on',run:()=>adjust(d.state.on?'off':'on')});
+   if(toggleTypes.has(d.type)){if(typeof d.state.on==='boolean')rows.push({label:d.state.on?'Turn off':'Turn on',run:()=>adjust(d.state.on?'off':'on')});else rows.push({label:'Turn on',run:()=>adjust('on')},{label:'Turn off',run:()=>adjust('off')});}
    if(d.type==='light'){rows.push(...[25,50,75,100].map(n=>({label:`Brightness ${n}%`,run:()=>adjust('brightness',n+'/')})));rows.push({label:'Color',run:()=>this.colorPicker(d.name,[d])});}
+   if(d.type==='television')rows.push(...(d.inputs||[]).map(input=>({label:(d.state.inputId===input.id?'✓ ':'')+input.name,run:()=>adjust('input',input.id+'/')})));
    if(d.type==='fan')rows.push(...[25,50,75,100].map(n=>({label:`Speed ${n}%`,run:()=>adjust('speed',n+'/')})));
    if(d.type==='blinds')rows.push(...[0,25,50,75,100].map(n=>({label:n===0?'Close':n===100?'Open':`Position ${n}%`,run:()=>adjust('position',n+'/')})));
   }
   rows.push({label:'Refresh state',run:()=>this.perform(async()=>this.showDevice(await this.api.request<Device>('/home/info/'+id),true))});
-  if(replace)this.pages.pop();this.push(d.name,rows,undefined,stateText(d));
+  if(replace)this.pages.pop();this.push(d.name,rows,undefined,stateText(d),deviceIcon(d.type));
  }
  private colorPicker(name:string,lights:Device[]){this.push(name+' · color',[...colors.map(c=>({label:c.name,run:()=>this.command(colorCommand(c.name,lights,c.h,c.s))})),...this.api.settings.customColors.map((color,index)=>({label:`Custom color ${index+1}`,run:()=>this.customColor(name,lights,index)}))]);}
  private customColor(name:string,lights:Device[],index:number){
@@ -60,17 +85,17 @@ export class Pome {
    ...[1,-1,10,-10].map(step=>({label:`Saturation ${step>0?'+':''}${step}%`,run:()=>{s=Math.max(0,Math.min(100,s+step));render(true);}}))
   ],undefined,`Hue ${h}° · Saturation ${s}%`);this.page.index=rowIndex;this.render();};render(false);
  }
- private cameras(items:Camera[]){this.push('Cameras',items.map(c=>({icon:'camera',label:c.name+(c.ready?'':' · no image yet'),run:()=>this.camera(c)})));}
- private async camera(c:Camera){await this.perform(async()=>{let frame:CameraFrame;try{frame=await this.api.request<CameraFrame>(`/frame/${encodeURIComponent(c.id)}?platform=emery&mode=${this.api.settings.contrast}`);}catch{this.push(c.name,[{label:'Capture first image',run:()=>this.refreshCamera(c)}]);return;}this.showCamera(c,frame);});}
- private showCamera(c:Camera,frame:CameraFrame){const age=Math.max(0,Math.round(frame.age));this.push(c.name,[{label:'Refresh snapshot',run:()=>this.refreshCamera(c)}],frameBMP(frame,this.api.settings.contrast==='high-contrast'),`Captured ${age}s ago · Tap refresh`);}
- private async refreshCamera(c:Camera){await this.perform(async()=>{const id=encodeURIComponent(c.id),request=await this.api.request<{requestID:string}>('/refresh/'+id,'POST');if(!request.requestID)throw new Error('Capture request failed');for(let i=0;i<40;i++){await new Promise(r=>setTimeout(r,this.api.demo?10:1000));const result=await this.api.request<{state:string;error?:string}>(`/capture/${id}?request=${encodeURIComponent(request.requestID)}`);if(result.state==='failed')throw new Error(result.error||'Camera capture failed');if(result.state==='ready'){const frame=await this.api.request<CameraFrame>(`/frame/${id}?platform=emery&mode=${this.api.settings.contrast}`);this.pages.pop();this.showCamera(c,frame);return;}}throw new Error('Capture timed out; the previous image is unchanged.');},'Capturing fresh image…');}
+ private cameras(items:Camera[]){this.push('Cameras',items.map(c=>({key:'camera:'+c.id,icon:'camera',label:c.name+(c.ready?'':' · no image yet'),run:()=>this.camera(c)})));}
+ private async camera(c:Camera){await this.perform(async()=>{let frame:CameraFrame;try{frame=await this.api.request<CameraFrame>(`/frame/${encodeURIComponent(c.id)}?platform=even-g2&mode=${this.api.settings.contrast}`);}catch{this.push(c.name,[{label:'Capture first image',run:()=>this.refreshCamera(c)}]);return;}this.showCamera(c,frame);});}
+ private showCamera(c:Camera,frame:CameraFrame){const age=Math.max(0,Math.round(frame.age));this.push(c.name,[{label:'Refresh snapshot',run:()=>this.refreshCamera(c)}],ditherCameraBMP(frameBMP(frame,this.api.settings.contrast==='high-contrast')),`Captured ${age}s ago · Tap refresh`);}
+ private async refreshCamera(c:Camera){await this.perform(async()=>{const id=encodeURIComponent(c.id),request=await this.api.request<{requestID:string}>('/refresh/'+id,'POST');if(!request.requestID)throw new Error('Capture request failed');for(let i=0;i<40;i++){await new Promise(r=>setTimeout(r,this.api.demo?10:1000));const result=await this.api.request<{state:string;error?:string}>(`/capture/${id}?request=${encodeURIComponent(request.requestID)}`);if(result.state==='failed')throw new Error(result.error||'Camera capture failed');if(result.state==='ready'){const frame=await this.api.request<CameraFrame>(`/frame/${id}?platform=even-g2&mode=${this.api.settings.contrast}`);this.pages.pop();this.showCamera(c,frame);return;}}throw new Error('Capture timed out; the previous image is unchanged.');},'Capturing fresh image…');}
  private confirm(command:Command){if(command.queryIds){void this.showVoiceStatus(command);return;}this.push(command.label,[{label:'Confirm',run:()=>this.command(command,true)},{label:'Cancel',run:()=>this.back()}]);}
- private async showVoiceStatus(command:Command){try{const devices=await Promise.all(command.queryIds!.map(id=>this.api.request<Device>('/home/info/'+encodeURIComponent(id))));this.push(command.label,devices.map(d=>({icon:deviceIcon(d.type),label:d.name+' · '+stateText(d),run:()=>this.back()})),undefined,'Live status · Double tap back');}catch(e){this.notice=e instanceof Error?e.message:'Status unavailable';this.render();}}
+ private async showVoiceStatus(command:Command){try{const devices=await Promise.all(command.queryIds!.map(id=>this.api.request<Device>('/home/info/'+encodeURIComponent(id))));this.push(command.label,devices.map(d=>({key:'device:'+d.serviceId,icon:deviceIcon(d.type),label:d.name+' · '+stateText(d),run:()=>this.back()})),undefined,'Live status · Double tap back');}catch(e){this.notice=e instanceof Error?e.message:'Status unavailable';this.render();}}
  private async command(command:Command,dismiss=false){await this.perform(async()=>{if(!command.paths.length)throw new Error('No lights support this adjustment.');const result=await runCommands(command.paths,path=>this.api.request(path,'POST'));if(dismiss)this.pages.pop();const skipped=command.skipped?` · ${command.skipped} unsupported skipped`:'';this.notice=result.failed.length?`${result.completed}/${result.total} updated · ${result.failed.length} failed${skipped}. Refresh before retrying.`:result.total>1||command.skipped?`${result.completed}/${result.total} lights updated${skipped}`:'Command completed';},'Applying…');}
  async beginRecording(){if(this.busy||this.recording)return;await this.perform(async()=>{
   const health=await this.api.request<{dictation:boolean}>('/health');if(!health.dictation)throw new Error('Set up Dictation in Connector → Even G2.');
   this.returnAfterVoice=[...this.pages];this.chunks=[];this.recordingBytes=0;this.recording=true;
-  this.push('Listening…',[{label:'Tap to finish recording',run:()=>this.finishRecording()}],undefined,'Double tap cancels · Up to 2 minutes');
+  this.push('Listening…',[{label:'Tap to finish recording',run:()=>this.finishRecording()}],undefined,'Double tap cancels · Up to 2 minutes','voice');
   try {await this.display.record(true);this.timer=setTimeout(()=>void this.finishRecording(),120000);}
   catch(e){this.recording=false;this.chunks=[];await this.display.record(false).catch(()=>{});this.pages=this.returnAfterVoice||this.pages.slice(0,-1);this.returnAfterVoice=undefined;throw e;}
  });}

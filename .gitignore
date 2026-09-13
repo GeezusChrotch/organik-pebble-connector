@@ -13,3 +13,8 @@ even-g2/pome/dist/
 !cloud/Resources/EvenG2/pome/dist/**
 
 even-g2/CANDIDATE-*.json
+
+even-g2/*CANDIDATE*.json
+even-g2/beepster/release/
+
+even-g2/store-assets/

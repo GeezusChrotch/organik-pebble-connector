@@ -179,8 +179,13 @@ final class BeepsterModule: NSObject, ObservableObject {
     }
     func updateMediaAccess(_ result: [String: Any]) {
         switch result["code"] as? String {
-        case "READY": self.mediaAccessMessage = "Messages attachment folder is accessible. Open the photo or GIF again on your watch."
-        case "MEDIA_PERMISSION": self.mediaAccessMessage = "Messages attachment access is blocked. Allow the selected Beepster service in Full Disk Access, then restart and recheck."
+        case "READY": self.mediaAccessMessage = "Messages attachment folder is accessible. Open the photo or GIF again."
+        case "MEDIA_PERMISSION":
+#if APP_STORE
+            self.mediaAccessMessage = "macOS blocked reading a Messages attachment. In System Settings → Privacy & Security → Full Disk Access, allow Organik Apps Pebble Connector, then restart and recheck."
+#else
+            self.mediaAccessMessage = "Messages attachment access is blocked. Allow the selected Beepster service in Full Disk Access, then restart and recheck."
+#endif
         case "SETUP_REQUIRED": self.mediaAccessMessage = "Choose the Messages attachments folder, then restart and recheck."
         case "NO_LOCAL_ATTACHMENTS": self.mediaAccessMessage = "No local Messages attachment folder was found. No access change is needed unless you use Messages attachments."
         case "NOT_APPLICABLE": self.mediaAccessMessage = "Messages attachment access is not required on this system."
@@ -636,7 +641,7 @@ final class BeepsterModule: NSObject, ObservableObject {
                                      workingDirectory: gateway, environment: [
                 "BEEPSTER_PORT": "8794", "BEEPSTER_HOST": "127.0.0.1",
                 "BEEPSTER_KEYCHAIN_HELPER": keychain.path,
-                "BEEPSTER_CONTACT_HELPER": Bundle(url: contacts)?.executableURL?.path ?? contacts.path].merging(storeAgents.environment()) { _, new in new })
+                "BEEPSTER_CONTACT_HELPER": Bundle(url: contacts)?.executableURL?.path ?? contacts.path].merging(storeAgents.environment()) { _, new in new }, mediaHandler: { [storeAgents] request in storeAgents.attachmentPreview(request) })
             return (true, "Beepster runs while the Connector is open. Start at login is controlled in Settings.")
         } catch { return (false, error.localizedDescription) }
 #else
@@ -792,6 +797,13 @@ final class BeepsterModule: NSObject, ObservableObject {
         return tailscaleServePort(binary) != nil
             ? (true, "connected and forwarding")
             : (false, "connected; Serve route missing")
+    }
+
+    func sharedG2Credential() async -> String? {
+        let secret = await Task.detached { self.run(self.keychainHelperPath(), ["get", "gateway-token"], timeout: nil) }.value
+        guard secret.0 == 0 else { return nil }
+        let token = secret.1.trimmingCharacters(in: .whitespacesAndNewlines)
+        return token.isEmpty ? nil : token
     }
 
     private func beeperConnectionHealth() -> (Bool, String) {
@@ -1266,22 +1278,7 @@ final class BeepsterModule: NSObject, ObservableObject {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(url.absoluteString, forType: .string)
 
-                let instructions = self.wrappingLabel("1. On your phone, open Pebble → Beepster → Settings.\n2. Paste the private address (already copied).\n3. Enter the pairing code, then test and save.")
-                instructions.font = .systemFont(ofSize: 13)
-                let addressLabel = NSTextField(labelWithString: "Private address")
-                addressLabel.font = .systemFont(ofSize: 12, weight: .semibold)
-                let address = NSTextField(frame: NSRect(x: 0, y: 0, width: 440, height: 24))
-                address.stringValue = url.absoluteString
-                address.isEditable = false
-                address.isSelectable = true
-                address.lineBreakMode = .byTruncatingMiddle
-                let codeLabel = NSTextField(labelWithString: "Pairing code: \(pairing.1)")
-                codeLabel.font = .monospacedDigitSystemFont(ofSize: 20, weight: .semibold)
-                let details = NSStackView(views: [instructions, addressLabel, address, codeLabel])
-                details.orientation = .vertical
-                details.alignment = .leading
-                details.spacing = 8
-                details.widthAnchor.constraint(equalToConstant: 440).isActive = true
+                let details = Self.phonePairingAccessory(address: url.absoluteString, code: pairing.1)
 
                 let alert = NSAlert()
                 alert.messageText = "Connect Beepster on your phone"
@@ -1291,6 +1288,42 @@ final class BeepsterModule: NSObject, ObservableObject {
                 alert.runModal()
             }
         }
+    }
+
+    static func phonePairingAccessory(address value: String, code: String) -> NSView {
+        // NSAlert measures the frame at its accessory boundary, not a stack's constraints.
+        let accessory = NSView(frame: NSRect(x: 0, y: 0, width: 440, height: 190))
+        let instructions = NSTextField(wrappingLabelWithString: "1. On your phone, open Pebble → Beepster → Settings.\n2. Paste the private address (already copied).\n3. Enter the pairing code, then test and save.")
+        instructions.font = .systemFont(ofSize: 13)
+        instructions.maximumNumberOfLines = 0
+        let addressLabel = NSTextField(labelWithString: "Private address")
+        addressLabel.font = .systemFont(ofSize: 12, weight: .semibold)
+        let address = NSTextField()
+        address.stringValue = value
+        address.isEditable = false
+        address.isSelectable = true
+        address.lineBreakMode = .byTruncatingMiddle
+        let codeLabel = NSTextField(labelWithString: "Pairing code: \(code)")
+        codeLabel.font = .monospacedDigitSystemFont(ofSize: 20, weight: .semibold)
+        let stack = NSStackView(views: [instructions, addressLabel, address, codeLabel])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        accessory.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: accessory.leadingAnchor, constant: 4),
+            stack.trailingAnchor.constraint(equalTo: accessory.trailingAnchor, constant: -4),
+            stack.topAnchor.constraint(equalTo: accessory.topAnchor, constant: 4),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: accessory.bottomAnchor),
+            instructions.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            instructions.heightAnchor.constraint(equalToConstant: 70),
+            address.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            address.heightAnchor.constraint(equalToConstant: 24),
+            codeLabel.widthAnchor.constraint(equalTo: stack.widthAnchor)
+        ])
+        accessory.layoutSubtreeIfNeeded()
+        return accessory
     }
 
     @objc private func copyPhoneSetup() {

@@ -79,3 +79,12 @@ enum OverviewConnectionStatus {
         status["BackendState"] as? String == "Running" && (status["Self"] as? [String: Any])?["Online"] as? Bool == true
     }
 }
+
+enum ConnectorDistribution {
+#if DIRECT_DOWNLOAD
+    static let pomeAvailable = false
+#else
+    static let pomeAvailable = true
+#endif
+    static let pomeNotice = "Coming to the Apple App Store soon"
+}

@@ -47,11 +47,13 @@ import ServiceManagement
         for page in [ConnectorPage.beepster, .reminderz, .eventz] where UserDefaults.standard.bool(forKey: "enabled." + page.rawValue) { enable(page) }
         if UserDefaults.standard.bool(forKey: "stone.enabled") { stone.start() }
         updater.start()
-        cameras.start()
+        if ConnectorDistribution.pomeAvailable { cameras.start() }
         if UserDefaults.standard.bool(forKey: "even.enabled") {
             Task {
+                let connectHome = ConnectorDistribution.pomeAvailable && (UserDefaults.standard.object(forKey:"even.connectHome") as? Bool ?? true)
+                if !connectHome {even.start(home:cameras,beepster:beepster,eventz:eventz,connectHome:false,prepareDictation:UserDefaults.standard.bool(forKey:"direct.localSpeechDownloadApproved") && UserDefaults.standard.bool(forKey:"even.prepareDictation"));return}
                 for _ in 0..<20 {
-                    if await cameras.connectLocalCameraService() { even.start(home: cameras); break }
+                    if await cameras.connectLocalCameraService() { even.start(home: cameras, beepster: beepster, eventz: eventz); break }
                     try? await Task.sleep(nanoseconds: 500_000_000)
                 }
             }
@@ -92,7 +94,7 @@ import ServiceManagement
         case .beepster: return beepster.map { $0.requirements + $0.agentRequirements } ?? unchecked([("contacts", "Contact names"), ("beeper", "Beeper connection"), ("route", "Private connection"), ("attachments", ConnectorLabels.attachments)], page: page)
         case .reminderz: return reminderz?.requirements ?? unchecked([("permission", "Reminders access"), ("service", "Mac service"), ("route", "Private connection")], page: page)
         case .eventz: return eventz?.requirements ?? unchecked([("permission", "Calendars access"), ("service", "Mac service"), ("route", "Private connection")], page: page)
-        case .pome: return cameras.overviewRequirements
+        case .pome: return ConnectorDistribution.pomeAvailable ? cameras.overviewRequirements : []
         case .tesla: return tesla.requirements
         default: return []
         }
@@ -122,7 +124,7 @@ import ServiceManagement
         if visiblePages.contains(.eventz) { eventz?.checkConnection() }
         if visiblePages.contains(.reminderz) { reminderz?.checkConnection() }
         if visiblePages.contains(.stone) { await stone.refresh() }
-        if visiblePages.contains(.pome) { await cameras.check() }
+        if ConnectorDistribution.pomeAvailable && visiblePages.contains(.pome) { await cameras.check() }
         if visiblePages.contains(.tesla) { await tesla.check() }
     }
     private var snapshotPending = false
@@ -267,6 +269,7 @@ struct NotesyView: View {
 
 struct BeepsterView: View {
     @ObservedObject var module: BeepsterModule
+    var isEvenG2 = false
     private func ready(_ id: String) -> Bool { module.requirements.first { $0.id == id }?.ready == true }
     var body: some View {
         ConnectorDetail(page: .beepster, requirements: module.requirements, busy: module.busy, message: module.message) {
@@ -288,8 +291,10 @@ struct BeepsterView: View {
                 PrivateSetupHelp()
                 Button(ready("route") ? "Private connection ready" : "Start private connection") { module.repairRoute() }.disabled(module.busy || !ready("beeper") || ready("route"))
             }
+            if !isEvenG2 {
             SetupStep(number: 3, title: "Pair Beepster on your phone", detail: "Install Beepster on your Pebble. Open Connect phone and follow the pairing instructions, then save Beepster’s settings in the Pebble phone app and refresh Beepster on your watch.") {
                 Button("Connect phone") { module.pairPhone() }.buttonStyle(.borderedProminent).disabled(module.busy || !ready("route"))
+            }
             }
             DisclosureGroup("Optional: Apple Messages photos and GIFs") {
                 Text(module.attachmentSetupDetail).font(.callout).foregroundStyle(.secondary)
@@ -298,9 +303,11 @@ struct BeepsterView: View {
                     Button("Allow attachment access") { module.openMediaAccessSettings() }
                 }.disabled(module.mediaAccessBusy || module.busy)
             }
+            if !isEvenG2 {
             DisclosureGroup("Optional: Hermes and OpenClaw") {
                 Text("Connect each agent separately to its Telegram conversation for watch approvals and thread-specific instructions. Messaging works without agent setup.").font(.callout).foregroundStyle(.secondary)
                 AgentSetupView(module:module)
+            }
             }
             Button("Check connection") { module.checkConnection() }.disabled(module.busy)
         } troubleshooting: {
@@ -505,7 +512,9 @@ struct PebbleConnectorWindow: View {
                                 HStack(alignment: .top, spacing: 18) {
                                     Label(page.rawValue, systemImage: page.symbol).font(.headline).frame(width: 115, alignment: .leading)
                                     VStack(alignment: .leading, spacing: 10) {
-                                        ForEach(model.overviewRequirements(page)) { RequirementLight(requirement: $0) }
+                                        if page == .pome && !ConnectorDistribution.pomeAvailable {
+                                            Text(ConnectorDistribution.pomeNotice).foregroundStyle(.secondary)
+                                        } else { ForEach(model.overviewRequirements(page)) { RequirementLight(requirement: $0) } }
                                     }.frame(maxWidth: .infinity, alignment: .leading)
                                     if model.overviewRequirements(page).contains(where: { !$0.ready && !$0.checking }) { Button("Fix") { model.selection = page } }
                                 }.padding(12)
@@ -520,7 +529,9 @@ struct PebbleConnectorWindow: View {
                 if let module = model.eventz { EventzView(module: module) } else { enablePage(.eventz) }
             case .reminderz:
                 if let module = model.reminderz { ReminderzView(module: module) } else { enablePage(.reminderz) }
-            case .pome: PomeSetupView(service: model.cameras)
+            case .pome:
+                if ConnectorDistribution.pomeAvailable { PomeSetupView(service: model.cameras) }
+                else { PomeComingSoonView() }
             case .tesla: ExternalServiceView(page: .tesla, service: model.tesla)
             case .settings: ConnectorSettings(model: model, updater: model.updater)
             }
@@ -662,5 +673,15 @@ struct ConnectorWindowCommands: Commands {
                 NSApp.activate(ignoringOtherApps: true)
             }.keyboardShortcut("o", modifiers: .command)
         }
+    }
+}
+
+struct PomeComingSoonView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("Pome", systemImage: "house").font(.largeTitle)
+            Text(ConnectorDistribution.pomeNotice).font(.title2)
+            Text("Apple Home controls and cameras for Pebble and Even G2 are unavailable in this download. Your saved Pome settings are preserved.").foregroundStyle(.secondary)
+        }.padding(28).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }

@@ -11,3 +11,12 @@ nav{flex-wrap:wrap}.visibility{display:grid;grid-template-columns:1fr 1fr;gap:8p
 .custom-color-card{padding:16px;border:1px solid #78937e;border-radius:12px;margin-top:18px}.custom-color-card h3{margin:0}.custom-color-card .color-swatch{margin-top:12px;height:48px}.custom-color-card input[type=range]{appearance:none;-webkit-appearance:none;width:100%;height:44px;padding:0;border:1px solid #78937e;border-radius:22px;cursor:pointer;touch-action:pan-y}.custom-color-card .hue-slider{background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}.custom-color-card input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:28px;height:44px;border:3px solid white;border-radius:14px;background:transparent;box-shadow:0 0 0 1px #18251e,0 1px 4px #0008}.custom-color-card input[type=range]::-moz-range-thumb{width:22px;height:38px;border:3px solid white;border-radius:14px;background:transparent;box-shadow:0 0 0 1px #18251e}.slider-ends{display:flex;justify-content:space-between;font-size:12px;margin-top:6px}
 
 .glasses-menu{width:66.6667%;margin-inline:auto}
+
+.glasses .glasses-title{display:flex;align-items:center;justify-content:center;gap:16px}.glasses .glasses-title img{width:18px;height:18px;filter:none}.glasses>img{width:75%;height:auto;aspect-ratio:2; margin-block:auto}
+
+.glasses-menu{width:max-content;max-width:100%;margin-inline:auto}.glasses small{display:block;width:100%;text-align:center}
+
+.glasses:has(.glasses-menu) .glasses-title{margin-bottom:27px}
+
+/* Match the thin, square glasses window boundary. */
+.glasses{border:1px solid #43884b;border-radius:0}

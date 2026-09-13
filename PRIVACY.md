@@ -1,3 +1,7 @@
+# Direct-download edition scope
+
+Pome is unavailable in this edition: no HomeKit helper, HomeKit credentials, controls, camera routes or Pome G2 setup are included. Saved Pome preferences are not deleted. HomeKit descriptions below apply only to the separate Apple App Store edition. Beepster and DayFrame G2 use their own credentials and remain available. This edition uses Developer ID distribution, Sparkle when an update feed is configured, and the direct Beepster background-service lifecycle rather than the Store sandbox lifecycle.
+
 # Privacy
 
 Organik Apps Pebble Connector runs on your Mac. It does not create an Organik Apps account or upload your notes, reminders, messages, or vehicle data to an Organik Apps server.
@@ -78,3 +82,13 @@ The G2 app displays a proposed home action for confirmation before executing it.
 The phone app stores pairing and display preferences locally in its app storage.
 
 Local Parakeet dictation downloads public model assets from Hugging Face during setup. Once cached, transcription runs on the Mac without uploading recordings. Audio is written to a private temporary WAV while the native helper reads it, then deleted after success or failure. The Connector does not retain transcripts. A custom speech provider remains optional and receives recordings only when selected.
+
+### DayFrame calendar app for G2
+
+DayFrame reads calendar names, event titles, dates, times and locations from your
+Mac through the shared Connector and your private Tailscale connection. It does
+not change calendar events or send calendar content to an AI provider. Calendar
+content stays in memory while DayFrame is open. The Even app stores your pairing
+and display/calendar preferences on your device; Disconnect in DayFrame removes
+its saved pairing. Your Mac's existing Calendars permission controls access.
+Countdowns are visual readouts and do not create alarms or notifications.

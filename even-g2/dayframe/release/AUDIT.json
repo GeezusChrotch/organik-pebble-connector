@@ -1,0 +1,25 @@
+{
+  "version": "0.1.10",
+  "package": "dist/dayframe-0.1.10.ehpk",
+  "sha256": "2c80f230cf76bd8a22c37229c382466f4bd117c3792b8537f57c6c9985654ec5",
+  "previouslyVerifiedHubStatus": "Beta build v0.1.10 Published",
+  "publishedArtifactHashMatches": true,
+  "freshBuildMatchesDist": {
+    "index.html": true,
+    "assets/index-Dv-XhYMU.js": true,
+    "assets/index-vyDrIjT3.css": true
+  },
+  "testsPassed": 24,
+  "typecheckPassed": true,
+  "hardwareTested": false,
+  "publicPublicationHold": "Await compatible Developer ID signed and notarized Connector download confirmation from coordinator",
+  "apiChangesNeeded": false,
+  "artworkSha256": {
+    "icon.png": "9149d2a9bee6a5d71b75bef10a7e845c6c59b8ef1650c220269073dc6d91bc02",
+    "01-calendars.png": "025d7eeff75ea182c89cdc263fadc26f5c97ffe2c5cb62d9236b31ce1732ef83",
+    "03-event.png": "2bcd1e63fd2ea4053d230ffe2e4a3473b3eb054d59b823da12f2d5e187d1af12",
+    "02-agenda.png": "00213f04cae9efd0ce983c6deeb8d8488cc1f95411a7a69182e4c707056d8898"
+  },
+  "artworkVisuallyVerified": true,
+  "captureRuntime": "Official Even Hub Simulator 0.9.3; release/capture.ts uses unchanged shipping controller/display with isolated realistic screenshot-only API fixtures"
+}

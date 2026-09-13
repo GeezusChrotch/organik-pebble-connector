@@ -6,17 +6,28 @@ import Security
     @Published var running = false
     @Published var busy = false
     @Published var origin = ""
-    @Published var message = "Start the G2 connection to use Pome with this Mac’s Apple Home."
+    @Published var message = "Start the G2 connection to use your G2 apps with this Mac."
     @Published var speechURL = UserDefaults.standard.string(forKey: "even.speechURL") ?? ""
     @Published var speechModel = UserDefaults.standard.string(forKey: "even.speechModel") ?? "whisper-1"
     @Published var useLocalSpeech = UserDefaults.standard.object(forKey: "even.localSpeech") as? Bool ?? (UserDefaults.standard.string(forKey:"even.speechURL") ?? "").isEmpty
     @Published var speechKey = ""
     @Published var dictationReady = false
+    @Published var beepsterReady = false
+    @Published var dayframeReady = false
     private var process: Process?
     private var clientToken = ""
     private var speechSetup: Process?
     private var speechDirectory: URL {FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("Organik Apps Pebble Connector/Speech/parakeet-tdt-0.6b-v3-coreml",isDirectory:true)}
     private func prepareSpeech(_ binary: URL) async throws {
+        if !UserDefaults.standard.bool(forKey: "direct.localSpeechDownloadApproved") {
+            let alert = NSAlert()
+            alert.messageText = "Set up local dictation?"
+            alert.informativeText = "Parakeet downloads about 500 MB of public model files from Hugging Face. Allow at least 1 GB of free disk space for setup. Existing cached files are reused. Speech is then processed on this Apple Silicon Mac without uploading recordings or usage charges. You can use Beepster without dictation."
+            alert.addButton(withTitle: "Set Up Dictation")
+            alert.addButton(withTitle: "Cancel")
+            guard alert.runModal() == .alertFirstButtonReturn else { throw ConnectorError(message: "Dictation setup cancelled. Start the connection without dictation, or set it up later.") }
+            UserDefaults.standard.set(true, forKey: "direct.localSpeechDownloadApproved")
+        }
         message = "Preparing free local Parakeet dictation. The first setup downloads the model and may take several minutes."
         let child = Process(); child.executableURL = binary; child.arguments = ["prepare",speechDirectory.path]
         child.standardOutput = FileHandle.nullDevice; child.standardError = FileHandle.nullDevice
@@ -48,17 +59,21 @@ import Security
         guard status == errSecSuccess, let data = result as? Data, let value = String(data:data,encoding:.utf8) else {throw ConnectorError(message:"Unlock Keychain to read the G2 connection.")}
         return value
     }
-    func start(home: PomeCameraService) {
+    func start(home: PomeCameraService, beepster: BeepsterModule? = nil, eventz: EventzModule? = nil, connectHome: Bool = true, prepareDictation: Bool = true) {
+        guard !connectHome || ConnectorDistribution.pomeAvailable else { message = ConnectorDistribution.pomeNotice; return }
         guard !busy else {return};busy = true
         Task {
             defer {busy = false}
             do {
-                guard await home.connectLocalCameraService() else {throw ConnectorError(message:"Connect Apple Home first, then start the G2 connection.")}
-                let homeToken = try home.sharedG2Credential()
+                if connectHome { guard await home.connectLocalCameraService() else {throw ConnectorError(message:"Connect Apple Home first, then start the G2 connection.")} }
+                let homeToken = ConnectorDistribution.pomeAvailable ? ((try? home.sharedG2Credential()) ?? "") : ""
+                let beepsterToken = await beepster?.sharedG2Credential() ?? ""
+                let eventzToken = await eventz?.sharedG2Credential() ?? ""
+                guard !homeToken.isEmpty || !beepsterToken.isEmpty || !eventzToken.isEmpty else {throw ConnectorError(message:"Enable Calendars, Beepster, or Apple Home before starting G2.")}
                 let saved = try credential("client")
                 clientToken = saved.isEmpty ? try credential("client",save:UUID().uuidString + UUID().uuidString) : saved
                 if !speechKey.isEmpty {_ = try credential("speech",save:speechKey);speechKey = ""}
-                let provider = useLocalSpeech ? "" : speechURL.trimmingCharacters(in:.whitespacesAndNewlines)
+                let provider = (!prepareDictation || useLocalSpeech) ? "" : speechURL.trimmingCharacters(in:.whitespacesAndNewlines)
                 if !provider.isEmpty {
                     guard let url = URL(string:provider),url.user == nil,url.password == nil,url.query == nil,url.fragment == nil,
                         url.scheme == "https" || (url.scheme == "http" && ["127.0.0.1","localhost","::1"].contains(url.host ?? "")) else {throw ConnectorError(message:"Use an HTTPS speech endpoint, or HTTP on localhost.")}
@@ -72,7 +87,7 @@ import Security
                 let script = resources.appendingPathComponent("EvenG2/server.mjs")
                 guard FileManager.default.isExecutableFile(atPath:node.path),FileManager.default.fileExists(atPath:script.path) else {throw ConnectorError(message:"This build is missing the Even G2 runtime.")}
                 let speechBinary = resources.appendingPathComponent("Speech/organik-speech")
-                if useLocalSpeech {
+                if prepareDictation && useLocalSpeech {
 #if arch(arm64)
                     guard FileManager.default.isExecutableFile(atPath:speechBinary.path) else {throw ConnectorError(message:"This build is missing local dictation.")}
                     try await prepareSpeech(speechBinary)
@@ -86,13 +101,15 @@ import Security
                 child.terminationHandler = { [weak self] stopped in
                     Task { @MainActor in
                         guard let self, self.process === stopped else { return }
-                        self.process = nil; self.running = false; self.origin = ""; self.dictationReady = false
+                        self.process = nil; self.running = false; self.origin = ""; self.dictationReady = false; self.beepsterReady = false; self.dayframeReady = false
                         self.message = "G2 service stopped. Start the connection again."
                     }
                 }
                 try child.run();process = child
                 var config: [String:String] = ["clientToken":clientToken,"homeToken":homeToken,"speechBaseURL":provider,"speechModel":speechModel,"speechToken":try credential("speech")]
-                if useLocalSpeech {config["localSpeechBinary"] = speechBinary.path;config["localSpeechModels"] = speechDirectory.path;config["speechModel"] = "parakeet-tdt-0.6b-v3"}
+                if !beepsterToken.isEmpty {config["beepsterToken"] = beepsterToken}
+                if !eventzToken.isEmpty {config["eventzToken"] = eventzToken}
+                if prepareDictation && useLocalSpeech {config["localSpeechBinary"] = speechBinary.path;config["localSpeechModels"] = speechDirectory.path;config["speechModel"] = "parakeet-tdt-0.6b-v3"}
                 input.fileHandleForWriting.write(try JSONSerialization.data(withJSONObject:config));try? input.fileHandleForWriting.close()
                 var ready = false
                 for _ in 0..<20 {
@@ -103,7 +120,9 @@ import Security
                 guard ready else {stop();throw ConnectorError(message:"The G2 service could not start. Check that port 7858 is available.")}
                 UserDefaults.standard.set(useLocalSpeech,forKey:"even.localSpeech");UserDefaults.standard.set(speechURL,forKey:"even.speechURL");UserDefaults.standard.set(speechModel,forKey:"even.speechModel")
                 UserDefaults.standard.set(true,forKey:"even.enabled")
-                running = true;dictationReady = useLocalSpeech || !provider.isEmpty
+                if ConnectorDistribution.pomeAvailable { UserDefaults.standard.set(connectHome,forKey:"even.connectHome") }
+                UserDefaults.standard.set(prepareDictation,forKey:"even.prepareDictation")
+                running = true;dictationReady = prepareDictation && (useLocalSpeech || !provider.isEmpty)
                 let route = try await Task.detached {try PrivateConnection.start(target:"http://127.0.0.1:7858",port:10558)}.value
                 _ = route
                 let configuration = try await Task.detached {try PrivateConnection.configuration()}.value
@@ -111,14 +130,16 @@ import Security
                 guard !origin.isEmpty else {throw ConnectorError(message:"G2 service started, but its private address is unavailable.")}
                 let check = try await jsonRequest(URL(string:origin + "/health")!,token:clientToken)
                 guard check["service"] as? String == "org.organikapps.even" else {throw ConnectorError(message:"The private G2 route could not be verified.")}
-                message = "Mac connection ready. Pair Pome in the Even phone app, then test on your glasses."
+                beepsterReady = check["beepster"] as? Bool ?? false
+                dayframeReady = check["dayframe"] as? Bool ?? false
+                message = "Mac connection ready. Pair DayFrame, Pome or Beepster in the Even phone app, then test on your glasses."
             } catch {message = error.localizedDescription}
         }
     }
     func stop() {
         if let speechSetup,speechSetup.isRunning {speechSetup.terminate()}
         if let process,process.isRunning {process.terminate();process.waitUntilExit()}
-        process = nil;running = false;origin = "";dictationReady = false
+        process = nil;running = false;origin = "";dictationReady = false;beepsterReady = false;dayframeReady = false
     }
     func disconnect() {UserDefaults.standard.set(false,forKey:"even.enabled");stop();message = "G2 connection stopped. Pebble remains connected."}
     func copyPairing() {
@@ -128,6 +149,6 @@ import Security
         NSPasteboard.general.clearContents();NSPasteboard.general.setString(text,forType:.string)
         let generation = NSPasteboard.general.changeCount
         DispatchQueue.main.asyncAfter(deadline:.now()+120) {if NSPasteboard.general.changeCount == generation {NSPasteboard.general.clearContents()}}
-        message = "Pairing copied. Paste it into Pome’s Even phone settings. Clipboard clears after two minutes."
+        message = "Pairing copied. Paste it into your G2 app’s Even phone settings. Clipboard clears after two minutes."
     }
 }

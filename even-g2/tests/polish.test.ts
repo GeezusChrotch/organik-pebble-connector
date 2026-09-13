@@ -19,7 +19,7 @@ test('hidden sections retain pins and room custom color can be applied through n
  api.request=async(path:string,method?:string)=>{if(method==='POST'){writes.push(path);return {} as any;}return snapshot.devices as any;};
  const pome=new Pome(api,{show:(v:any)=>{view=v;},exit:async()=>{}} as unknown as Display);
  await pome.start();assert.deepEqual(view.lines,['> Rooms','  Refresh home']);assert.deepEqual(api.settings.pins,['room:studio']);
- await pome.input(0);await pome.input(0);await pome.input(0);await pome.input(0);
+ await pome.input(0);await pome.input(0);await pome.input(0);await pome.input(0);await pome.input(0);
  assert.match(view.title,/color/);
  for(let i=0;i<16;i++)await pome.input(2);
  await pome.input(0);assert.match(view.footer,/Hue 42/);
@@ -46,7 +46,7 @@ test('three custom colors migrate safely and each applies to all room lights',as
   const writes:string[]=[];const api=new API(settings,true);api.snapshot=async()=>snapshot;
   api.request=async(path:string,method?:string)=>{if(method==='POST'){writes.push(path);return {} as any;}return snapshot.devices as any;};
   let screen:any;const pome=new Pome(api,{show:(s:any)=>screen=s} as unknown as Display);await pome.start();
-  await pome.input(0);await pome.input(0);await pome.input(0);await pome.input(0);
+  await pome.input(0);await pome.input(0);await pome.input(0);await pome.input(0);await pome.input(0);
   for(let i=0;i<16+slot;i++)await pome.input(2);
   assert.ok(screen.lines.some((s:string)=>s===`> Custom color ${slot+1}`));
   await pome.input(0);await pome.input(0);

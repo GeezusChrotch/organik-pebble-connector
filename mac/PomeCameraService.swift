@@ -38,6 +38,7 @@ import LocalAuthentication
     private let target = "http://127.0.0.1:7855"
     var running: Bool { health.running }
     func start() {
+        guard ConnectorDistribution.pomeAvailable else { return }
         guard !launching, !quitting else { return }
         guard let app = Bundle.main.resourceURL?.appendingPathComponent("Pome Cameras.app"), FileManager.default.fileExists(atPath: app.path) else {
             message = "The Pome service is missing. Install the updated Connector."; return
@@ -98,6 +99,7 @@ import LocalAuthentication
         health = PomeCameraHealth([:]); homeHealth = PomeHomeHealth([:], status: 0); preview = nil
     }
     @discardableResult func connectLocalCameraService() async -> Bool {
+        guard ConnectorDistribution.pomeAvailable else { return false }
         do {
             let file: URL
             if let group = Bundle.main.object(forInfoDictionaryKey: "OrganikCameraAppGroup") as? String {
@@ -173,6 +175,7 @@ import LocalAuthentication
         await check()
     }
     func check() async {
+        guard ConnectorDistribution.pomeAvailable else { return }
         guard !busy else { return }
         if checking { checkPending = true; return }
         checking = true
@@ -225,6 +228,7 @@ import LocalAuthentication
         } catch { return PomeHomeHealth([:], status: 0) }
     }
     func startPrivateConnection() {
+        guard ConnectorDistribution.pomeAvailable else { return }
         guard !busy, health.valid else { return }
         busy = true; revision += 1
         Task {

@@ -1,5 +1,5 @@
 import {speechClean,speechWithoutNames,speechNumber,speechGuard,speechSceneNames} from './speech-language';
-export interface Device {name:string;serviceId:string;type:string;room:string;reachable?:boolean;state:Record<string,unknown>}
+export interface Device {inputs?:{id:number;name:string}[];name:string;serviceId:string;type:string;room:string;reachable?:boolean;stateIncomplete?:boolean;state:Record<string,unknown>}
 export interface Room {id:string;name:string}
 export interface Scene {id:string;name:string}
 export interface Camera {id:string;name:string;room:string;roomId?:string;age:number;ready:boolean}
@@ -16,7 +16,7 @@ export function normalizeCustomColors(saved:{customColors?:unknown;customColor?:
 export function loadSettings(raw?:string):Settings {try{const saved=JSON.parse(raw??localStorage.getItem('pome.settings')??'{}');return {...defaults,...saved,customColors:normalizeCustomColors(saved),sectionOrder:normalizeSectionOrder(saved.sectionOrder),hiddenSections:Array.isArray(saved.hiddenSections)?saved.hiddenSections.filter((s:Section)=>sections.includes(s)):[],customColor:{...defaults.customColor,...saved.customColor}};}catch{return {...defaults};}}
 export function validateConnection(raw:string):string {const u=new URL(raw);if(u.username||u.password||u.search||u.hash||u.pathname!=='/')throw new Error('Enter the Connector address without a path.');if(u.protocol!=='https:' && !(u.protocol==='http:'&&['localhost','127.0.0.1'].includes(u.hostname)))throw new Error('Use your private HTTPS Connector address.');return u.origin;}
 export function stateText(d:Device):string {
- if(d.reachable===false)return 'Unavailable';if(d.type==='garage-door'||d.type==='lock')return 'Control through Scenes';const s=d.state||{};
+ if(d.reachable===false)return 'Unavailable';if(d.type==='garage-door'||d.type==='lock')return 'Control through Scenes';const s=d.state||{};if(d.stateIncomplete&&Object.keys(s).length===0)return 'State not refreshed';
  if(typeof s.temperature==='number')return s.temperature.toFixed(1)+' C';
  if(typeof s.humidity==='number')return s.humidity+'% humidity';
  if(typeof s.lightLevel==='number')return s.lightLevel+' lux';
@@ -34,7 +34,7 @@ export function colorCommand(label:string,devices:Device[],h:number,s:number):Co
  if(!supported.length)throw new Error('No lights support color.');
  return {label,skipped:lights.length-supported.length,paths:supported.map(d=>`/home/color/${h}/${s}/${encodeURIComponent(d.serviceId)}`)};
 }
-export const toggleTypes = new Set(['light','fan','switch','outlet','air-purifier','humidifier']);
+export const toggleTypes = new Set(['light','fan','switch','outlet','air-purifier','humidifier','television']);
 export type Command = {label:string;paths:string[];skipped?:number;queryIds?:string[]};
 const norm=(s:string)=>s.toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 const has=(s:string,t:string)=>(' '+s+' ').includes(' '+norm(t)+' ');
