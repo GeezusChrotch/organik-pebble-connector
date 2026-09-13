@@ -1,0 +1,17 @@
+{
+  "version": "0.1.19",
+  "packageSHA256": "47b44fd09c3643702bb10aa691120b25e525379f2d1f2ca5720df45a287f32c7",
+  "files": {
+    "assets/index-G5229TA-.css": "e9e2c6d153231c90e909c12b1fe3559b0317653be7863b0a2ad6353180680e26",
+    "assets/index-aZgPsct7.js": "6cc262fe208641e5f49b98a757a2f8490c40d49a737936e84ad3923547db4b06",
+    "beepster-0.1.18.ehpk": "2975b0bbff77d67a91bd71a18a12eb9dc42dd31fda6260df5c48577baa46421a",
+    "beepster-0.1.19.ehpk": "47b44fd09c3643702bb10aa691120b25e525379f2d1f2ca5720df45a287f32c7",
+    "emoji/atlas.png": "1259c02ebf6246ae79626a72dfcf24da59072d676b1289ec290021fa4fc76bb2",
+    "emoji/catalog.json": "bc0379d6893e89b2c8f83c2af4eadbe0c7b00eae815e78fea05b6a066515b902",
+    "emoji/g2-pixels.bin": "2683dc640d42d4c3062a306e8dc7ff38d4784209129633f3f28fa16efad598f2",
+    "index.html": "8fce28764b6867e1048f2fc85c0b5c24c86c4f421f60562ddc4c1f2eb74e9bc1"
+  },
+  "installed": false,
+  "hardwareTested": false,
+  "published": false
+}

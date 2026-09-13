@@ -9,6 +9,9 @@ export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks" "$root/build"
 ditto "$baseline/Contents/Resources" "$app/Contents/Resources"
 resources="$app/Contents/Resources"
+# Use the explicitly staged G2 candidate, not assets inherited from the installed app.
+rm -rf "$resources/EvenG2/beepster/dist"
+ditto "$root/cloud/Resources/EvenG2/beepster/dist" "$resources/EvenG2/beepster/dist"
 rm -rf "$resources/Pome Cameras.app" "$resources/EvenG2/pome"
 python3 - "$root/even-g2/server.mjs" "$resources/EvenG2/server.mjs" <<'PYPOME'
 from pathlib import Path
