@@ -9,7 +9,7 @@ import Foundation
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let preferences = ConnectorVisibility(defaults: defaults)
-        assert(ConnectorPage.connectors.map(\.rawValue) == ["Notesy", "Beepster", "Reminderz", "Pome", "Tesla"])
+        assert(ConnectorPage.connectors.map(\.rawValue) == ["Notesy", "Beepster", "Reminderz", "Eventz", "Pome", "Tesla"])
         assert(!preferences.isVisible(.tesla))
         assert(preferences.isVisible(.stone))
         // Migration from a personal build does not automatically expose Tesla.

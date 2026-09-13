@@ -29,7 +29,9 @@ async function body(req, limit) {
   }
   return Buffer.concat(chunks);
 }
+export const pomeAvailable = true;
 export function createBridge(config, { upstream = 'http://127.0.0.1:7855', fetcher = fetch, beepsterUpstream = 'http://127.0.0.1:8794', eventzUpstream = 'http://127.0.0.1:7848', assets = path.join(path.dirname(fileURLToPath(import.meta.url)), 'pome/dist') } = {}) {
+  if (!pomeAvailable) config = {...config, homeToken: ''};
   if (!config.clientToken || (!config.homeToken && !config.beepsterToken && !config.eventzToken)) throw new Error('Missing connection credentials');
   let transcribing = false;
   let speechURL;
@@ -61,7 +63,7 @@ export function createBridge(config, { upstream = 'http://127.0.0.1:7855', fetch
       if (!authenticated(req.headers.authorization, config.clientToken)) return json(401,{error:'Pair your app in the Even phone settings.'});
       if (req.method === 'GET' && url.pathname === '/health') {
         let home = false;
-        try {const r = await fetcher(upstream + '/home/status',{headers:{Authorization:'Bearer '+config.homeToken},signal:AbortSignal.timeout(10000)});const j = await r.json();home = r.ok && j.backend === 'homekit';}catch{}
+        if (config.homeToken) try {const r = await fetcher(upstream + '/home/status',{headers:{Authorization:'Bearer '+config.homeToken},signal:AbortSignal.timeout(10000)});const j = await r.json();home = r.ok && j.backend === 'homekit';}catch{}
         let beepster=false;if(config.beepsterToken)try{const r=await fetcher(beepsterUpstream+'/v1/chats?limit=1',{headers:{Authorization:'Bearer '+config.beepsterToken},signal:AbortSignal.timeout(10000),redirect:'error'});beepster=r.ok;}catch{}
         let dayframe=false;if(config.eventzToken)try{const r=await fetcher(eventzUpstream+'/v1/health',{headers:{Authorization:'Bearer '+config.eventzToken},signal:AbortSignal.timeout(3000),redirect:'error'});const d=await r.json();dayframe=r.ok&&d.calendars===true;}catch{}
         return json(200,{dayframe,service:'org.organikapps.even',protocol:1,home,beepster,dictation:!!speechURL || !!config.localSpeechBinary,speechModel:config.speechModel || ''});
@@ -90,6 +92,7 @@ export function createBridge(config, { upstream = 'http://127.0.0.1:7855', fetch
       }
       if(dayframeRoute(req.method,url.pathname)){const result=await proxyDayframe(url,config,fetcher,eventzUpstream);return json(result.status,result.data);}
       if(beepsterRoute(req.method,url.pathname)){const result=await proxyBeepster(req,url,config,fetcher,beepsterUpstream);return json(result.status,result.data);}
+      if (!config.homeToken) return json(503,{error:'Pome coming soon to the App Store'});
       if (!allowedRoute(req.method,url.pathname)) return json(404,{error:'Not found'});
       const response = await fetcher(upstream + url.pathname + url.search,{method:req.method,headers:{Authorization:'Bearer '+config.homeToken},signal:AbortSignal.timeout(14000),redirect:'error'});
       // Only the HomeKit API is exposed. No service shutdown, tokens or scheduling endpoints.

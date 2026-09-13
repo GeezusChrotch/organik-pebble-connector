@@ -2,6 +2,8 @@ import AppKit
 import SwiftUI
 import Combine
 import ServiceManagement
+import Contacts
+import EventKit
 
 @MainActor final class ConnectorModel: ObservableObject {
     let stone = NotesyService()
@@ -34,6 +36,48 @@ import ServiceManagement
             NSWorkspace.shared.open(URL(string: "https://tailscale.com/download/mac")!)
         }
     }
+    @Published var showEditionTransition = ConnectorEditionTransition.needsReview()
+    @Published var repairPanel: String?
+    func fix(_ page: ConnectorPage, _ id: String) {
+        enable(page)
+        if id == "route" && !tailscale.ready { fixTailscale(); return }
+        switch (page, id) {
+        case (.stone, "vault"): stone.chooseVault()
+        case (.stone, "service"): if stone.vaultReady { stone.start() } else { stone.chooseVault() }
+        case (.stone, "route"): stone.startPrivate()
+        case (.beepster, "contacts"):
+            if CNContactStore.authorizationStatus(for: .contacts) == .notDetermined { beepster?.allowContacts() }
+            else { beepster?.privacySettings() }
+        case (.beepster, "beeper"): beepster?.editToken()
+        case (.beepster, "attachments"): beepster?.openMediaAccessSettings()
+        case (.beepster, "route"): beepster?.repairRoute()
+        case (.beepster, "agent-hermes"), (.beepster, "agent-openclaw"): repairPanel = id
+        case (.beepster, _): beepster?.repairService()
+        case (.eventz, "permission"):
+            if EKEventStore.authorizationStatus(for: .event) == .notDetermined { eventz?.setUpSync() }
+            else { openPrivacy("Calendars") }
+        case (.reminderz, "permission"):
+            if EKEventStore.authorizationStatus(for: .reminder) == .notDetermined { reminderz?.setUpSync() }
+            else { openPrivacy("Reminders") }
+        case (.eventz, "route"): eventz?.repairRoute()
+        case (.reminderz, "route"): reminderz?.repairRoute()
+        case (.eventz, _): eventz?.setUpSync()
+        case (.reminderz, _): reminderz?.setUpSync()
+        case (.pome, "route"): cameras.startPrivateConnection()
+        case (.pome, "home-permission"): openPrivacy("HomeKit")
+        case (.pome, "home-ready"): NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Home.app"))
+        case (.pome, "service"): cameras.setUpHome()
+        case (.pome, "camera-running"): cameras.control("start")
+        case (.pome, "camera-capture"): NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Software-Update-Settings.extension")!)
+        case (.pome, _): repairPanel = "cameras"
+        case (.tesla, "route"): tesla.privateConnection()
+        case (.tesla, _): repairPanel = "tesla"
+        default: break
+        }
+    }
+    private func openPrivacy(_ pane: String) {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_" + pane)!)
+    }
     private var refreshing = false
     func start() {
         for notification in [NSWindow.didMiniaturizeNotification, NSWindow.didDeminiaturizeNotification, NSWindow.willCloseNotification, NSWindow.didBecomeMainNotification, NSWindow.didResignMainNotification] {
@@ -47,11 +91,11 @@ import ServiceManagement
         for page in [ConnectorPage.beepster, .reminderz, .eventz] where UserDefaults.standard.bool(forKey: "enabled." + page.rawValue) { enable(page) }
         if UserDefaults.standard.bool(forKey: "stone.enabled") { stone.start() }
         updater.start()
-        cameras.start()
+        if ConnectorDistribution.pomeAvailable { cameras.start() }
         if UserDefaults.standard.bool(forKey: "even.enabled") {
             Task {
-                let connectHome = UserDefaults.standard.object(forKey:"even.connectHome") as? Bool ?? true
-                if !connectHome {even.start(home:cameras,beepster:beepster,eventz:eventz,connectHome:false,prepareDictation:UserDefaults.standard.object(forKey:"even.prepareDictation") as? Bool ?? true);return}
+                let connectHome = ConnectorDistribution.pomeAvailable && (UserDefaults.standard.object(forKey:"even.connectHome") as? Bool ?? true)
+                if !connectHome {even.start(home:cameras,beepster:beepster,eventz:eventz,connectHome:false,prepareDictation:UserDefaults.standard.bool(forKey:"direct.localSpeechDownloadApproved") && UserDefaults.standard.bool(forKey:"even.prepareDictation"));return}
                 for _ in 0..<20 {
                     if await cameras.connectLocalCameraService() { even.start(home: cameras, beepster: beepster, eventz: eventz); break }
                     try? await Task.sleep(nanoseconds: 500_000_000)
@@ -94,7 +138,7 @@ import ServiceManagement
         case .beepster: return beepster.map { $0.requirements + $0.agentRequirements } ?? unchecked([("contacts", "Contact names"), ("beeper", "Beeper connection"), ("route", "Private connection"), ("attachments", ConnectorLabels.attachments)], page: page)
         case .reminderz: return reminderz?.requirements ?? unchecked([("permission", "Reminders access"), ("service", "Mac service"), ("route", "Private connection")], page: page)
         case .eventz: return eventz?.requirements ?? unchecked([("permission", "Calendars access"), ("service", "Mac service"), ("route", "Private connection")], page: page)
-        case .pome: return cameras.overviewRequirements
+        case .pome: return ConnectorDistribution.pomeAvailable ? cameras.overviewRequirements : []
         case .tesla: return tesla.requirements
         default: return []
         }
@@ -124,7 +168,7 @@ import ServiceManagement
         if visiblePages.contains(.eventz) { eventz?.checkConnection() }
         if visiblePages.contains(.reminderz) { reminderz?.checkConnection() }
         if visiblePages.contains(.stone) { await stone.refresh() }
-        if visiblePages.contains(.pome) { await cameras.check() }
+        if ConnectorDistribution.pomeAvailable && visiblePages.contains(.pome) { await cameras.check() }
         if visiblePages.contains(.tesla) { await tesla.check() }
     }
     private var snapshotPending = false
@@ -173,16 +217,34 @@ struct RequirementLight: View {
     }
 }
 
+struct RequirementRow: View {
+    let requirement: ConnectorRequirement
+    let fix: () -> Void
+    var body: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                RequirementLight(requirement: requirement)
+                if !requirement.ready && !requirement.checking {
+                    Text(requirement.detail).font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+                }
+            }
+            Spacer()
+            if !requirement.ready && !requirement.checking {
+                Button("Fix", action: fix).accessibilityLabel("Fix " + requirement.title)
+            }
+        }
+    }
+}
+
 struct RequirementList: View {
+    @EnvironmentObject private var model: ConnectorModel
+    var page: ConnectorPage = .pome
     let requirements: [ConnectorRequirement]
     var body: some View {
         GroupBox("Requirements") {
             VStack(alignment: .leading, spacing: 14) {
                 ForEach(requirements) { requirement in
-                    VStack(alignment: .leading, spacing: 4) {
-                        RequirementLight(requirement: requirement)
-                        Text(requirement.detail).font(.callout).foregroundStyle(.secondary).textSelection(.enabled).padding(.leading, 16)
-                    }
+                    RequirementRow(requirement: requirement) { model.fix(page, requirement.id) }
                 }
             }.frame(maxWidth: .infinity, alignment: .leading).padding(10)
         }
@@ -201,6 +263,8 @@ struct ConnectorDetail<Connection: View, Troubleshooting: View>: View {
     let requirements: [ConnectorRequirement]
     let busy: Bool
     let message: String
+    var startWithSetup = false
+    @State private var section = "Status"
     @ViewBuilder var connection: () -> Connection
     @ViewBuilder var troubleshooting: () -> Troubleshooting
     var body: some View {
@@ -212,7 +276,13 @@ struct ConnectorDetail<Connection: View, Troubleshooting: View>: View {
                 }
                 Text(requirements.contains(where: \.checking) ? "Checking your saved connections… You can continue setup below." : requirements.allSatisfy(\.ready) ? "Your Mac is ready. Connect your phone below, or review your setup." : "Set up this app by following the steps below. Existing settings and pairing are reused.")
                     .font(.callout).foregroundStyle(.secondary)
-                GroupBox("Setup") {
+                Picker("Section", selection: $section) {
+                    Text("Status").tag("Status")
+                    Text("Setup & pairing").tag("Setup")
+                    Text("Advanced").tag("Advanced")
+                }.pickerStyle(.segmented)
+                if section == "Status" { RequirementList(page: page, requirements: requirements) }
+                if section == "Setup" { GroupBox("Setup & pairing") {
                     VStack(alignment: .leading, spacing: 12) {
                         connection()
                         HStack {
@@ -221,15 +291,16 @@ struct ConnectorDetail<Connection: View, Troubleshooting: View>: View {
                         }
                     }.frame(maxWidth: .infinity, alignment: .leading).padding(10)
                 }
-                RequirementList(requirements: requirements)
-                DisclosureGroup("Troubleshooting") {
+                }
+                if section == "Advanced" { GroupBox("Advanced controls") {
                     VStack(alignment: .leading, spacing: 14) { troubleshooting() }
                         .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 12)
+                }
                 }
                 Text("Keep this Mac awake and Tailscale connected on both Mac and phone. Closing the window keeps enabled services running.")
                     .font(.caption).foregroundStyle(.secondary)
             }.padding(28).frame(maxWidth: 850, alignment: .leading).frame(maxWidth: .infinity, alignment: .leading)
-        }
+        }.onAppear { if startWithSetup || requirements.allSatisfy({ !$0.ready }) { section = "Setup" } }
     }
 }
 
@@ -272,7 +343,7 @@ struct BeepsterView: View {
     var isEvenG2 = false
     private func ready(_ id: String) -> Bool { module.requirements.first { $0.id == id }?.ready == true }
     var body: some View {
-        ConnectorDetail(page: .beepster, requirements: module.requirements, busy: module.busy, message: module.message) {
+        ConnectorDetail(page: .beepster, requirements: module.requirements + module.agentRequirements, busy: module.busy, message: module.message) {
             SetupStep(number: 1, title: "Connect Beeper Desktop", detail: "Open Beeper Desktop and sign in. In Beeper Settings → Beeper Desktop API, enable Allow connections and create a token for Beepster. Connect Beeper asks for that token if needed, requests Contacts access for names, and starts the Mac connection. Existing tokens and permissions are reused.") {
 #if APP_STORE
                 if !module.serviceConflictMessage.isEmpty { Text(module.serviceConflictMessage).font(.callout) }
@@ -315,7 +386,7 @@ struct BeepsterView: View {
             Text("If Beeper stops responding, keep Beeper Desktop open and check that its API is enabled. Use Change Beeper token below if the token expired. If contact names are missing, review Contacts access below.")
             HStack {
                 Button("Change Beeper token") { module.editToken() }
-                Button("Continue") { module.allowContacts() }
+                Button("Allow Contacts access") { module.allowContacts() }
                 Button("Repair service") { module.repairService() }
                 Button("Repair private connection") { module.repairRoute() }
                 Button("Open Contacts privacy settings") { module.privacySettings() }
@@ -389,10 +460,11 @@ struct EventzView: View {
 }
 
 struct ExternalServiceView: View {
+    var startWithSetup = false
     let page: ConnectorPage
     @ObservedObject var service: ExternalService
     var body: some View {
-        ConnectorDetail(page: page, requirements: service.requirements, busy: service.busy, message: service.status) {
+        ConnectorDetail(page: page, requirements: service.requirements, busy: service.busy, message: service.status, startWithSetup: startWithSetup) {
             SetupStep(number: 1, title: "Prepare your Tesla gateway", detail: "Tesla is coming soon and currently requires an existing personal gateway. Developer registration, Tesla sign-in, and the command proxy must already be configured. Enter that gateway’s host and port below.") {
                 Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
                     GridRow { Text("Service host"); TextField("Hostname or IPv4 address", text: $service.localHost) }
@@ -426,6 +498,7 @@ struct ConnectorSettings: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 Text("Settings").font(.largeTitle.weight(.semibold))
+                EditionTransitionView(model: model)
                 GroupBox("Visible connectors") {
                     VStack(alignment: .leading, spacing: 14) {
                         ForEach(ConnectorPage.connectors) { page in
@@ -493,7 +566,8 @@ struct PebbleConnectorWindow: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
                         Text("Overview").font(.largeTitle.weight(.semibold))
-                        Text("Choose an app in the sidebar for step-by-step setup. Fix opens that app’s setup and connection details.").foregroundStyle(.secondary)
+                        if model.showEditionTransition { EditionTransitionView(model: model) }
+                        Text("Choose an app in the sidebar for step-by-step setup. Each red status explains the problem. Fix opens the relevant action directly.").foregroundStyle(.secondary)
                         GroupBox {
                             HStack(alignment: .top, spacing: 18) {
                                 Label("All apps", systemImage: "network").font(.headline).frame(width: 115, alignment: .leading)
@@ -512,9 +586,10 @@ struct PebbleConnectorWindow: View {
                                 HStack(alignment: .top, spacing: 18) {
                                     Label(page.rawValue, systemImage: page.symbol).font(.headline).frame(width: 115, alignment: .leading)
                                     VStack(alignment: .leading, spacing: 10) {
-                                        ForEach(model.overviewRequirements(page)) { RequirementLight(requirement: $0) }
+                                        if page == .pome && !ConnectorDistribution.pomeAvailable {
+                                            Text(ConnectorDistribution.pomeNotice).foregroundStyle(.secondary)
+                                        } else { ForEach(model.overviewRequirements(page)) { requirement in RequirementRow(requirement: requirement) { model.fix(page, requirement.id) } } }
                                     }.frame(maxWidth: .infinity, alignment: .leading)
-                                    if model.overviewRequirements(page).contains(where: { !$0.ready && !$0.checking }) { Button("Fix") { model.selection = page } }
                                 }.padding(12)
                             }
                         }
@@ -527,7 +602,9 @@ struct PebbleConnectorWindow: View {
                 if let module = model.eventz { EventzView(module: module) } else { enablePage(.eventz) }
             case .reminderz:
                 if let module = model.reminderz { ReminderzView(module: module) } else { enablePage(.reminderz) }
-            case .pome: PomeSetupView(service: model.cameras)
+            case .pome:
+                if ConnectorDistribution.pomeAvailable { PomeSetupView(service: model.cameras) }
+                else { PomeComingSoonView() }
             case .tesla: ExternalServiceView(page: .tesla, service: model.tesla)
             case .settings: ConnectorSettings(model: model, updater: model.updater)
             }
@@ -669,5 +746,15 @@ struct ConnectorWindowCommands: Commands {
                 NSApp.activate(ignoringOtherApps: true)
             }.keyboardShortcut("o", modifiers: .command)
         }
+    }
+}
+
+struct PomeComingSoonView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("Pome", systemImage: "house").font(.largeTitle)
+            Text(ConnectorDistribution.pomeNotice).font(.title2)
+            Text("Apple Home controls and cameras for Pebble and Even G2 are unavailable in this download. Your saved Pome settings are preserved.").foregroundStyle(.secondary)
+        }.padding(28).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }

@@ -42,6 +42,7 @@ struct AgentBridgeHealth: Decodable {
 
 struct AgentSetupView: View {
     @ObservedObject var module: BeepsterModule
+    var provider: String? = nil
     @State private var confirmInstall = false
     @State private var confirmOpenClaw = false
     @State private var confirmPromptSupport = false
@@ -54,7 +55,7 @@ struct AgentSetupView: View {
             }
             Text(module.agentMessage).font(.callout).textSelection(.enabled)
             ForEach(module.agentState?.states ?? [], id: \.self) { Text($0).font(.callout).foregroundStyle(.secondary) }
-            GroupBox("OpenClaw") {
+            if provider == nil || provider == "openclaw" { GroupBox("OpenClaw") {
                 VStack(alignment:.leading,spacing:8) {
                     SetupStep(number: 1, title: "Connect OpenClaw", detail: "Give the Connector access to OpenClaw so it can discover Telegram sessions and exchange prompts and pending approvals.") {
 #if APP_STORE
@@ -78,7 +79,8 @@ struct AgentSetupView: View {
                     }
                 }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
             }
-            GroupBox("Hermes") {
+            }
+            if provider == nil || provider == "hermes" { GroupBox("Hermes") {
                 VStack(alignment:.leading,spacing:8) {
                     SetupStep(number: 1, title: "Connect Hermes", detail: "Give the Connector access to Hermes so it can discover Telegram sessions and exchange prompts and pending approvals.") {
 #if APP_STORE
@@ -100,6 +102,7 @@ struct AgentSetupView: View {
                     }
                 }.frame(maxWidth:.infinity,alignment:.leading).padding(6)
             }
+        }
         }
         .alert("Install OpenClaw thread prompt support?", isPresented: $confirmPromptSupport) {
             Button("Install") { module.agentCommand(["action":"install-openclaw-prompts"]) }

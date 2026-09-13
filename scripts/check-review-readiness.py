@@ -51,12 +51,19 @@ def validate(record):
                 errors.append(f'{name}: unreadable evidence')
     try:
         artifact = json.loads(Path(record['artifactEvidence']).read_text())
-        for key in ('build', 'sourceCommit', 'pkgSHA256'):
+        direct = record.get('channel') == 'direct-download'
+        if record.get('channel', 'app-store') not in ('app-store', 'direct-download'):
+            errors.append('Unknown distribution channel')
+        hash_key, path_key = ('dmgSHA256', 'dmg') if direct else ('pkgSHA256', 'pkg')
+        for key in ('build', 'sourceCommit', hash_key):
             if str(record.get(key)) != str(artifact.get(key)) or key not in record:
                 errors.append(f'Artifact {key} mismatch')
-        if artifact.get('deepSignatureVerified') is not True or artifact.get('installerSignatureVerified') is not True:
+        signed = artifact.get('dmgSignatureVerified') if direct else artifact.get('installerSignatureVerified')
+        if direct and (artifact.get('notarizationAccepted') is not True or artifact.get('staplerValidated') is not True):
+            errors.append('Direct artifact notarization evidence missing')
+        if artifact.get('deepSignatureVerified') is not True or signed is not True:
             errors.append('Artifact signature evidence missing')
-        if hashlib.sha256(Path(artifact['pkg']).read_bytes()).hexdigest() != record['pkgSHA256']:
+        if hashlib.sha256(Path(artifact[path_key]).read_bytes()).hexdigest() != record[hash_key]:
             errors.append('Package hash mismatch')
     except (OSError, KeyError, TypeError, ValueError):
         errors.append('Unreadable artifact evidence or package')

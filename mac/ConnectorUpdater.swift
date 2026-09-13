@@ -1,6 +1,6 @@
 import Foundation
 import Combine
-#if APP_STORE
+#if APP_STORE && !DIRECT_DOWNLOAD
 import AppKit
 
 @MainActor final class ConnectorUpdater: ObservableObject {

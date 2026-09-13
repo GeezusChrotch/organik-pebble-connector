@@ -25,6 +25,27 @@ class ReviewReadinessTests(unittest.TestCase):
             name: dict(status='passed', assessment='Synthetic fixture', checkedAt='2026-09-11', checkedBy='Test', evidence=[dict(path=str(self.pkg), sha256=digest)]) for name in gate.REQUIRED
         })
 
+    def test_direct_channel_requires_notarization(self):
+        self.record['channel'] = 'direct-download'
+        self.record['dmgSHA256'] = self.record.pop('pkgSHA256')
+        artifact_path = Path(self.record['artifactEvidence'])
+        artifact = json.loads(artifact_path.read_text())
+        artifact['dmgSHA256'] = artifact.pop('pkgSHA256')
+        artifact['dmg'] = artifact.pop('pkg')
+        artifact['dmgSignatureVerified'] = True
+        artifact['notarizationAccepted'] = True
+        artifact['staplerValidated'] = True
+        artifact_path.write_text(json.dumps(artifact))
+        # Evidence file hash changes are handled by the existing generic evidence checks.
+        for check in self.record['checks'].values():
+            for evidence in check['evidence']:
+                if evidence['path'] == str(artifact_path):
+                    evidence['sha256'] = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+        self.assertFalse(gate.validate(self.record))
+        artifact['notarizationAccepted'] = False
+        artifact_path.write_text(json.dumps(artifact))
+        self.assertTrue(gate.validate(self.record))
+
     def test_complete_fixture(self):
         self.assertEqual(gate.validate(self.record), [])
 

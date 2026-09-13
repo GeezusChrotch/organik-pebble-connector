@@ -18,20 +18,16 @@ import Security
     private var clientToken = ""
     private var speechSetup: Process?
     private var speechDirectory: URL {FileManager.default.urls(for:.applicationSupportDirectory,in:.userDomainMask)[0].appendingPathComponent("Organik Apps Pebble Connector/Speech/parakeet-tdt-0.6b-v3-coreml",isDirectory:true)}
-    private var localSpeechApproved: Bool { UserDefaults.standard.bool(forKey: "speech.localDownloadApproved") }
-    func setUpLocalDictation(home: PomeCameraService, beepster: BeepsterModule?, eventz: EventzModule?, connectHome: Bool) {
-        guard !busy else { return }
-        let alert = NSAlert()
-        alert.messageText = "Set up local dictation?"
-        alert.informativeText = "Parakeet downloads about 500 MB of public model files from Hugging Face. Allow at least 1 GB of free disk space for setup. Existing cached files are reused. Speech is processed on this Apple Silicon Mac without uploading recordings or usage charges. You can use the connection without dictation."
-        alert.addButton(withTitle: "Set Up Dictation")
-        alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        UserDefaults.standard.set(true, forKey: "speech.localDownloadApproved")
-        useLocalSpeech = true
-        start(home: home, beepster: beepster, eventz: eventz, connectHome: connectHome, prepareDictation: true)
-    }
     private func prepareSpeech(_ binary: URL) async throws {
+        if !UserDefaults.standard.bool(forKey: "direct.localSpeechDownloadApproved") {
+            let alert = NSAlert()
+            alert.messageText = "Set up local dictation?"
+            alert.informativeText = "Parakeet downloads about 500 MB of public model files from Hugging Face. Allow at least 1 GB of free disk space for setup. Existing cached files are reused. Speech is then processed on this Apple Silicon Mac without uploading recordings or usage charges. You can use Beepster without dictation."
+            alert.addButton(withTitle: "Set Up Dictation")
+            alert.addButton(withTitle: "Cancel")
+            guard alert.runModal() == .alertFirstButtonReturn else { throw ConnectorError(message: "Dictation setup cancelled. Start the connection without dictation, or set it up later.") }
+            UserDefaults.standard.set(true, forKey: "direct.localSpeechDownloadApproved")
+        }
         message = "Preparing free local Parakeet dictation. The first setup downloads the model and may take several minutes."
         let child = Process(); child.executableURL = binary; child.arguments = ["prepare",speechDirectory.path]
         child.standardOutput = FileHandle.nullDevice; child.standardError = FileHandle.nullDevice
@@ -64,14 +60,13 @@ import Security
         return value
     }
     func start(home: PomeCameraService, beepster: BeepsterModule? = nil, eventz: EventzModule? = nil, connectHome: Bool = true, prepareDictation: Bool = true) {
+        guard !connectHome || ConnectorDistribution.pomeAvailable else { message = ConnectorDistribution.pomeNotice; return }
         guard !busy else {return};busy = true
-        // Starting the connection alone never authorizes a model download.
-        let prepareDictation = prepareDictation && (!useLocalSpeech || localSpeechApproved)
         Task {
             defer {busy = false}
             do {
                 if connectHome { guard await home.connectLocalCameraService() else {throw ConnectorError(message:"Connect Apple Home first, then start the G2 connection.")} }
-                let homeToken = (try? home.sharedG2Credential()) ?? ""
+                let homeToken = ConnectorDistribution.pomeAvailable ? ((try? home.sharedG2Credential()) ?? "") : ""
                 let beepsterToken = await beepster?.sharedG2Credential() ?? ""
                 let eventzToken = await eventz?.sharedG2Credential() ?? ""
                 guard !homeToken.isEmpty || !beepsterToken.isEmpty || !eventzToken.isEmpty else {throw ConnectorError(message:"Enable Calendars, Beepster, or Apple Home before starting G2.")}
@@ -82,15 +77,6 @@ import Security
                 if !provider.isEmpty {
                     guard let url = URL(string:provider),url.user == nil,url.password == nil,url.query == nil,url.fragment == nil,
                         url.scheme == "https" || (url.scheme == "http" && ["127.0.0.1","localhost","::1"].contains(url.host ?? "")) else {throw ConnectorError(message:"Use an HTTPS speech endpoint, or HTTP on localhost.")}
-                }
-                if prepareDictation && !provider.isEmpty && UserDefaults.standard.string(forKey: "speech.approvedProvider") != provider {
-                    let alert = NSAlert()
-                    alert.messageText = "Use this speech provider?"
-                    alert.informativeText = "Dictation recordings will be sent to \(provider). This provider processes audio under its own privacy policy and may charge for usage. Connector keeps its credential on this Mac. Cancel to keep the connection without configuring this provider."
-                    alert.addButton(withTitle: "Use This Provider")
-                    alert.addButton(withTitle: "Cancel")
-                    guard alert.runModal() == .alertFirstButtonReturn else { throw ConnectorError(message: "Speech provider setup cancelled.") }
-                    UserDefaults.standard.set(provider, forKey: "speech.approvedProvider")
                 }
                 guard let resources = Bundle.main.resourceURL else {return}
 #if arch(arm64)
@@ -134,7 +120,7 @@ import Security
                 guard ready else {stop();throw ConnectorError(message:"The G2 service could not start. Check that port 7858 is available.")}
                 UserDefaults.standard.set(useLocalSpeech,forKey:"even.localSpeech");UserDefaults.standard.set(speechURL,forKey:"even.speechURL");UserDefaults.standard.set(speechModel,forKey:"even.speechModel")
                 UserDefaults.standard.set(true,forKey:"even.enabled")
-                UserDefaults.standard.set(connectHome,forKey:"even.connectHome")
+                if ConnectorDistribution.pomeAvailable { UserDefaults.standard.set(connectHome,forKey:"even.connectHome") }
                 UserDefaults.standard.set(prepareDictation,forKey:"even.prepareDictation")
                 running = true;dictationReady = prepareDictation && (useLocalSpeech || !provider.isEmpty)
                 let route = try await Task.detached {try PrivateConnection.start(target:"http://127.0.0.1:7858",port:10558)}.value

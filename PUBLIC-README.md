@@ -1,31 +1,22 @@
-# Organik Apps Pebble Connector
+# Organik Apps Connector — direct download
 
-One Mac app connects Notesy, Beepster, Reminderz, and Pome to your Pebble through your phone. Choose an app in the sidebar, follow its numbered setup, and use Overview to check connections. Optional features and troubleshooting are separate from the main setup.
+For Notesy, Beepster, Reminderz and Eventz on Pebble, plus Beepster and DayFrame on Even G2. Requires macOS14 or later. Local Parakeet dictation requires Apple Silicon; Intel Macs can use a separately configured speech provider.
 
-**The next Mac App Store release is in preparation and is not publicly available yet.** The source on this branch includes the accepted direct HomeKit Pome backend and simplified setup. The older GitHub DMG release does not include this complete Store setup. Do not use its version number as proof of direct HomeKit support.
+**Pome: Pome coming soon to the App Store.** This download does not include Apple Home controls or cameras for Pebble or Even G2. Existing Pome preferences are preserved, but Pome is unavailable in this edition.
 
-## Setup
+1. Drag Organik Apps Pebble Connector to Applications and open it. Use one Connector installation at a time. Do not run alongside another Connector or an old standalone Beepster service.
+2. Install Tailscale on your Mac and phone. Sign into the same account and connect both. Keep this Mac powered on, awake, connected to the internet and running Connector while using your watch/glasses. A sleeping or offline Mac cannot serve your apps.
+3. Choose the apps you use in the sidebar or Even G2 tab. Follow the numbered setup steps. Beepster needs Beeper Desktop signed in with its local API enabled; Notesy needs a selected Obsidian vault; Reminderz and Eventz/DayFrame need the corresponding macOS permissions.
+4. Copy pairing only from the relevant app's setup, paste into its Pebble or Even phone settings, and save. Refresh the app on your physical watch/glasses. A green Mac status light does not verify phone pairing or device delivery.
 
-Use macOS 14 or newer. Cameras require macOS 15.2 or newer. Install Tailscale on Mac and phone and connect both to the same account. Install the watch apps separately in the Pebble phone app.
+The shared Tailscale light reports this Mac's connection. App connection lights test each app's own private route. Tailscale must also be connected on the phone. No public Funnel is enabled.
 
-Each app has three main steps:
+Closing the window leaves services running. File → Open Connector (Command-O) reopens it. Quit stops Connector and its app-owned services, including Beepster. Beepster no longer requires a separate login service. Settings can enable menu-bar mode, start at login, and hide unused apps without erasing pairing.
 
-1. **Connect its data source.** Notesy uses the Obsidian vault folder you choose and starts automatically. Beepster’s guided setup connects Beeper Desktop and requests Contacts access for names. Reminderz requests Apple Reminders access and starts sync. Pome connects directly to Apple Home through the bundled helper.
-2. **Connect privately.** Start the private Tailscale connection so your phone can reach this Mac away from home. Existing matching routes are reused.
-3. **Pair your phone.** Follow Connect phone for Notesy, Beepster, or Reminderz. For Pome, copy its URL and token into Pebble → Pome → Settings → Setup; home controls and cameras share that connection.
+Local dictation downloads public model assets during setup. A custom hosted speech provider receives audio and may charge separately. See Privacy for the exact data flows and optional services.
 
-Pome requires no Itsyhome installation or external home-control server. Set up your home in Apple Home on this Mac first. Optional cameras, Beepster attachment access, and Hermes/OpenClaw links have their own setup sections. Agent setup is separate for each agent and uses only its Telegram sessions.
+This is a Developer ID direct-distribution candidate. Publication, clean-install tests and device acceptance are tracked separately from signing and notarization.
 
-See the [complete Store setup guide](STORE-SETUP.md), [optional-agent guide](agents/README.md), and [privacy policy](PRIVACY.md).
+## Switching editions
 
-## Daily use
-
-Keep the Mac awake and Tailscale connected on both devices. Closing Connector’s window keeps its services running; quitting stops the owned services. Pome home controls continue when camera capture is paused. Settings can hide unused connectors, run Connector in the menu bar without a Dock icon, and enable start at login. Tesla is hidden by default and marked Coming soon.
-
-Green lights verify the Mac connections. Use the watch to verify the complete phone/watch path. A red light opens the affected app’s setup through Fix. Background checks leave setup controls available.
-
-## Building and release status
-
-The [self-contained Xcode Cloud project](cloud/README.md) builds the Store app using a supported stable host and Apple-managed signing. [Accepted source hashes](cloud/ACCEPTED-SOURCE.json) pin the native and HomeKit source used by the tested development build. A Store archive has different build/signing metadata and must pass its own validation and review.
-
-Developer build instructions for the older direct-distribution path remain in [BUILDING.md](BUILDING.md). Installing a development candidate, watch acceptance, App Store approval, and public release are separate steps. Historical tags retain older releases and documentation.
+Both editions keep their services inside Connector and use the macOS sandbox. Pome is exclusive to the App Store edition; Eventz and DayFrame are included in both. macOS may ask you to authorize access again when changing from an Apple Development test build to the signed GitHub edition. Ordinary updates within the GitHub edition retain its signing identity and sandbox. Existing permissions must be checked after an edition change; the Connector does not bypass or reset macOS privacy controls.
