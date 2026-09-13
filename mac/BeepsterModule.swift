@@ -1104,8 +1104,7 @@ final class BeepsterModule: NSObject, ObservableObject {
                 explanation.messageText = "Contact names in Beepster"
                 explanation.informativeText = "Beepster can match conversation phone numbers and email addresses to Contacts on this Mac. Matched names are sent with conversations to your paired phone and Pebble watch over your private connection. Your address book is not uploaded to an Organik Apps server. This is optional: without access, Beepster uses names provided by Beeper. You can change access in System Settings."
                 explanation.addButton(withTitle: "Continue")
-                explanation.addButton(withTitle: "Not Now")
-                guard explanation.runModal() == .alertFirstButtonReturn else { completed.signal(); return }
+                    guard explanation.runModal() == .alertFirstButtonReturn else { completed.signal(); return }
             }
             CNContactStore().requestAccess(for: .contacts) { _, _ in completed.signal() }
         }

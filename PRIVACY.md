@@ -92,3 +92,7 @@ content stays in memory while DayFrame is open. The Even app stores your pairing
 and display/calendar preferences on your device; Disconnect in DayFrame removes
 its saved pairing. Your Mac's existing Calendars permission controls access.
 Countdowns are visual readouts and do not create alarms or notifications.
+
+## Direct download service ownership
+
+The GitHub edition runs Beepster inside the signed Connector sandbox. It uses the same selected-folder attachment and optional Contacts access approach as the Store edition, without Pome or HomeKit access. Quit stops its owned services. It does not require a separate Beepster login service or Full Disk Access grant to a copied Node executable. Sparkle uses its installer XPC service to apply signed GitHub updates outside the sandbox.

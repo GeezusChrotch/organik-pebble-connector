@@ -86,5 +86,5 @@ enum ConnectorDistribution {
 #else
     static let pomeAvailable = true
 #endif
-    static let pomeNotice = "Coming to the Apple App Store soon"
+    static let pomeNotice = "Pome coming soon to the App Store"
 }
