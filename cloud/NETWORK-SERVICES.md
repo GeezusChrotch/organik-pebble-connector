@@ -21,3 +21,6 @@ When a user selects Start private connection, their separately installed Tailsca
 4. Closing Connector's window leaves the services available; normal Quit stops the owned listeners.
 
 The next archive uses accepted local build39 sources. Submitted build37 already used incoming Reminderz, Notesy and Beepster services and Pome camera HTTP; the replacement also serves direct Apple Home controls on the existing Pome port. Removing network.server would break the core incoming service functionality in both versions. This document describes implementation and review steps; it does not assert Apple approval.
+
+
+Store97: the authenticated G2 loopback bridge on7858 and its private Tailscale route also support Beepster conversations/replies and DayFrame calendars. It holds only the applicable local service credentials supplied by Connector. Pome HomeKit remains enabled. Local speech model download is optional and confirmed; custom provider audio transfer is disclosed and confirmed for each configured endpoint. These G2 clients do not expose helper shutdown or owner credentials.

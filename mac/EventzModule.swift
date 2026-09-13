@@ -291,6 +291,18 @@ final class EventzModule: NSObject, NSWindowDelegate, ObservableObject {
     func toggleRunning() { toggleService() }
     var isStopped: Bool { serviceStopped }
 
+    @MainActor func sharedG2Credential() async -> String {
+        // Reuse the owned EventKit service without prompting or changing Pebble pairing.
+        for _ in 0..<40 {
+            if !serviceBusy { break }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        guard !serviceStopped, !token.isEmpty,
+              EKEventStore.authorizationStatus(for: .event) == .fullAccess else { return "" }
+        return token
+    }
+
+
     private let store = EKEventStore()
     private var server: EventServer!
     private var window: NSWindow! { NSApp.keyWindow ?? NSApp.windows.first }

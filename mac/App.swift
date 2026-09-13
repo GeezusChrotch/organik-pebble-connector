@@ -50,8 +50,10 @@ import ServiceManagement
         cameras.start()
         if UserDefaults.standard.bool(forKey: "even.enabled") {
             Task {
+                let connectHome = UserDefaults.standard.object(forKey:"even.connectHome") as? Bool ?? true
+                if !connectHome {even.start(home:cameras,beepster:beepster,eventz:eventz,connectHome:false,prepareDictation:UserDefaults.standard.object(forKey:"even.prepareDictation") as? Bool ?? true);return}
                 for _ in 0..<20 {
-                    if await cameras.connectLocalCameraService() { even.start(home: cameras); break }
+                    if await cameras.connectLocalCameraService() { even.start(home: cameras, beepster: beepster, eventz: eventz); break }
                     try? await Task.sleep(nanoseconds: 500_000_000)
                 }
             }
@@ -267,6 +269,7 @@ struct NotesyView: View {
 
 struct BeepsterView: View {
     @ObservedObject var module: BeepsterModule
+    var isEvenG2 = false
     private func ready(_ id: String) -> Bool { module.requirements.first { $0.id == id }?.ready == true }
     var body: some View {
         ConnectorDetail(page: .beepster, requirements: module.requirements, busy: module.busy, message: module.message) {
@@ -288,8 +291,10 @@ struct BeepsterView: View {
                 PrivateSetupHelp()
                 Button(ready("route") ? "Private connection ready" : "Start private connection") { module.repairRoute() }.disabled(module.busy || !ready("beeper") || ready("route"))
             }
+            if !isEvenG2 {
             SetupStep(number: 3, title: "Pair Beepster on your phone", detail: "Install Beepster on your Pebble. Open Connect phone and follow the pairing instructions, then save Beepster’s settings in the Pebble phone app and refresh Beepster on your watch.") {
                 Button("Connect phone") { module.pairPhone() }.buttonStyle(.borderedProminent).disabled(module.busy || !ready("route"))
+            }
             }
             DisclosureGroup("Optional: Apple Messages photos and GIFs") {
                 Text(module.attachmentSetupDetail).font(.callout).foregroundStyle(.secondary)
@@ -298,9 +303,11 @@ struct BeepsterView: View {
                     Button("Allow attachment access") { module.openMediaAccessSettings() }
                 }.disabled(module.mediaAccessBusy || module.busy)
             }
+            if !isEvenG2 {
             DisclosureGroup("Optional: Hermes and OpenClaw") {
                 Text("Connect each agent separately to its Telegram conversation for watch approvals and thread-specific instructions. Messaging works without agent setup.").font(.callout).foregroundStyle(.secondary)
                 AgentSetupView(module:module)
+            }
             }
             Button("Check connection") { module.checkConnection() }.disabled(module.busy)
         } troubleshooting: {

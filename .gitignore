@@ -13,3 +13,9 @@ even-g2/pome/dist/
 !cloud/Resources/EvenG2/pome/dist/**
 
 even-g2/CANDIDATE-*.json
+
+**/node_modules/
+!cloud/Resources/EvenG2/beepster/dist/
+!cloud/Resources/EvenG2/beepster/dist/**
+!cloud/Resources/EvenG2/dayframe/dist/
+!cloud/Resources/EvenG2/dayframe/dist/**

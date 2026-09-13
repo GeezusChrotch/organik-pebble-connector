@@ -34,6 +34,8 @@
 	<string>Enable Reminderz to read, create, complete, and delete your reminders from your Pebble.</string>
 	<key>NSRemindersUsageDescription</key>
 	<string>Enable Reminderz to sync Apple Reminders with your Pebble.</string>
+	<key>NotesyPackageVersion</key>
+	<string>1.4.8</string>
 	<key>OrganikCameraAppGroup</key>
 	<string>group.org.organikapps.pebbleconnector</string>
 	<key>OrganikDistribution</key>

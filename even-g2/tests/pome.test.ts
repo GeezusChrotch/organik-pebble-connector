@@ -19,7 +19,7 @@ test('WAV preserves multiple PCM chunks and correct headers',()=>{
  assert.equal(v.getUint32(24,true),16000);assert.equal(v.getUint32(40,true),4);assert.deepEqual([...wav.slice(44)],[1,2,3,4]);assert.throws(()=>pcmToWav([new Uint8Array(1)]));
 });
 test('packed RGB222 camera frame becomes bounded 16-level grayscale BMP',()=>{
- const bmp=frameBMP({encoding:'gcolor6',width:1,height:1,pixels:btoa(String.fromCharCode(252)),age:12});const v=new DataView(bmp.buffer);assert.equal(v.getInt32(18,true),288);assert.equal(v.getInt32(22,true),144);assert.equal(bmp.length,54+288*144*3);
+ const bmp=frameBMP({encoding:'gcolor6',width:1,height:1,pixels:btoa(String.fromCharCode(252)),age:12});const v=new DataView(bmp.buffer);assert.equal(v.getInt32(18,true),432);assert.equal(v.getInt32(22,true),216);assert.equal(bmp.length,54+432*216*3);
  for(let i=54;i<bmp.length;i+=3){assert.equal(bmp[i],bmp[i+1]);assert.equal(bmp[i+1],bmp[i+2]);assert.equal(bmp[i]%17,0);}
  assert.throws(()=>frameBMP({encoding:'gcolor6',width:192,height:108,pixels:'',age:0}),/Incomplete/);
 });

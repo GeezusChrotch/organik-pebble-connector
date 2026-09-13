@@ -1,16 +1,17 @@
 {
   "name": "@organik/pome-even-g2",
-  "version": "0.1.12",
+  "version": "0.1.33",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "test": "tsx --test ../tests/*.test.ts",
-    "pack": "evenhub pack app.json dist -o dist/pome-0.1.12.ehpk"
+    "pack": "evenhub pack app.json dist -o dist/pome-0.1.33.ehpk"
   },
   "dependencies": {
-    "@evenrealities/even_hub_sdk": "0.0.15"
+    "@evenrealities/even_hub_sdk": "0.0.15",
+    "@evenrealities/pretext": "0.1.4"
   },
   "devDependencies": {
     "@evenrealities/evenhub-cli": "0.1.14",

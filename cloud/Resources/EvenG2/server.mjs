@@ -1,4 +1,6 @@
+import {dayframeRoute,proxyDayframe} from './dayframe-proxy.mjs';
 import http from 'node:http';
+import {beepsterRoute,proxyBeepster} from './beepster-proxy.mjs';
 import {transcribeLocal, stopLocalSpeech} from './local-speech.mjs';
 import { timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -7,7 +9,7 @@ import path from 'node:path';
 
 const MAX_AUDIO = 4 * 1024 * 1024;
 const homeReads = /^\/home\/(status|list\/(rooms|devices|scenes)|info\/[^?]+)$/;
-const homeWrites = /^\/home\/(scene|toggle|on|off|brightness|color|speed|position)\/[^?]+$/;
+const homeWrites = /^\/home\/(scene|toggle|on|off|brightness|color|speed|position|input)\/[^?]+$/;
 const cameraReads = /^\/(cameras|frame\/[^/?]+|capture\/[^/?]+|history\/[^/?]+)$/;
 const cameraWrites = /^\/refresh\/[^/?]+$/;
 export function allowedRoute(method, pathname) {
@@ -27,8 +29,8 @@ async function body(req, limit) {
   }
   return Buffer.concat(chunks);
 }
-export function createBridge(config, { upstream = 'http://127.0.0.1:7855', fetcher = fetch, assets = path.join(path.dirname(fileURLToPath(import.meta.url)), 'pome/dist') } = {}) {
-  if (!config.clientToken || !config.homeToken) throw new Error('Missing connection credentials');
+export function createBridge(config, { upstream = 'http://127.0.0.1:7855', fetcher = fetch, beepsterUpstream = 'http://127.0.0.1:8794', eventzUpstream = 'http://127.0.0.1:7848', assets = path.join(path.dirname(fileURLToPath(import.meta.url)), 'pome/dist') } = {}) {
+  if (!config.clientToken || (!config.homeToken && !config.beepsterToken && !config.eventzToken)) throw new Error('Missing connection credentials');
   let transcribing = false;
   let speechURL;
   if (config.speechBaseURL) {
@@ -46,17 +48,23 @@ export function createBridge(config, { upstream = 'http://127.0.0.1:7855', fetch
     try {
       const url = new URL(req.url, 'http://localhost');
       if (req.method === 'OPTIONS') {res.writeHead(204);res.end();return;}
-      if (req.method === 'GET' && (url.pathname === '/' || url.pathname.startsWith('/assets/'))) {
-        const file = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname).slice(1);
-        const resolved = path.resolve(assets, file);
-        if (!resolved.startsWith(path.resolve(assets) + path.sep)) return json(404,{error:'Not found'});
-        try {const data = await readFile(resolved);res.writeHead(200,{'Content-Type':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html'});res.end(data);} catch {json(404,{error:'Not found'});}return;
+      if (req.method === 'GET' && (url.pathname === '/' || url.pathname.startsWith('/assets/') || url.pathname === '/dayframe/' || url.pathname.startsWith('/dayframe/assets/') || url.pathname === '/beepster/' || url.pathname.startsWith('/beepster/assets/') || ['/beepster/emoji/catalog.json','/beepster/emoji/atlas.png','/beepster/emoji/g2-pixels.bin'].includes(url.pathname))) {
+        const beepsterAsset=url.pathname.startsWith('/beepster/');
+        const dayframeAsset=url.pathname.startsWith('/dayframe/');
+        const assetRoot=dayframeAsset?path.resolve(assets,'../../dayframe/dist'):beepsterAsset?path.resolve(assets,'../../beepster/dist'):assets;
+        const assetPath=dayframeAsset?url.pathname.slice('/dayframe'.length):beepsterAsset?url.pathname.slice('/beepster'.length):url.pathname;
+        const file = assetPath === '/' ? 'index.html' : decodeURIComponent(assetPath).slice(1);
+        const resolved = path.resolve(assetRoot, file);
+        if (!resolved.startsWith(path.resolve(assetRoot) + path.sep)) return json(404,{error:'Not found'});
+        try {const data = await readFile(resolved);res.writeHead(200,{'Content-Type':({'.js':'text/javascript','.css':'text/css','.html':'text/html','.json':'application/json','.png':'image/png','.bin':'application/octet-stream'}[path.extname(file)]||'application/octet-stream')});res.end(data);} catch {json(404,{error:'Not found'});}return;
       }
-      if (!authenticated(req.headers.authorization, config.clientToken)) return json(401,{error:'Pair Pome in the Even phone app settings.'});
+      if (!authenticated(req.headers.authorization, config.clientToken)) return json(401,{error:'Pair your app in the Even phone settings.'});
       if (req.method === 'GET' && url.pathname === '/health') {
         let home = false;
         try {const r = await fetcher(upstream + '/home/status',{headers:{Authorization:'Bearer '+config.homeToken},signal:AbortSignal.timeout(10000)});const j = await r.json();home = r.ok && j.backend === 'homekit';}catch{}
-        return json(200,{service:'org.organikapps.even',protocol:1,home,dictation:!!speechURL || !!config.localSpeechBinary,speechModel:config.speechModel || ''});
+        let beepster=false;if(config.beepsterToken)try{const r=await fetcher(beepsterUpstream+'/v1/chats?limit=1',{headers:{Authorization:'Bearer '+config.beepsterToken},signal:AbortSignal.timeout(10000),redirect:'error'});beepster=r.ok;}catch{}
+        let dayframe=false;if(config.eventzToken)try{const r=await fetcher(eventzUpstream+'/v1/health',{headers:{Authorization:'Bearer '+config.eventzToken},signal:AbortSignal.timeout(3000),redirect:'error'});const d=await r.json();dayframe=r.ok&&d.calendars===true;}catch{}
+        return json(200,{dayframe,service:'org.organikapps.even',protocol:1,home,beepster,dictation:!!speechURL || !!config.localSpeechBinary,speechModel:config.speechModel || ''});
       }
       if (req.method === 'POST' && url.pathname === '/speech') {
         if (!speechURL && !config.localSpeechBinary) return json(503,{error:'Set up Dictation in Connector → Even G2 on your Mac.'});
@@ -80,6 +88,8 @@ export function createBridge(config, { upstream = 'http://127.0.0.1:7855', fetch
           return json(200,{text:result.text.trim().slice(0,12000)});
         }finally{transcribing = false;}
       }
+      if(dayframeRoute(req.method,url.pathname)){const result=await proxyDayframe(url,config,fetcher,eventzUpstream);return json(result.status,result.data);}
+      if(beepsterRoute(req.method,url.pathname)){const result=await proxyBeepster(req,url,config,fetcher,beepsterUpstream);return json(result.status,result.data);}
       if (!allowedRoute(req.method,url.pathname)) return json(404,{error:'Not found'});
       const response = await fetcher(upstream + url.pathname + url.search,{method:req.method,headers:{Authorization:'Bearer '+config.homeToken},signal:AbortSignal.timeout(14000),redirect:'error'});
       // Only the HomeKit API is exposed. No service shutdown, tokens or scheduling endpoints.

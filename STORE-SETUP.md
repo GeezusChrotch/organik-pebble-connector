@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector 1.0 — Mac App Store setup
 
-**Prerelease guide. The App Store version is not publicly available yet.** This guide describes the next Store candidate with direct HomeKit Pome; it includes the build 57 Apple-review fixes and latest Pome G2 support. The older DMG release has different update and background-service behavior.
+**Prerelease guide. The App Store version is not publicly available yet.** This guide describes the next Store candidate with direct HomeKit Pome; it includes the build 97 Apple-review fixes and latest Pome G2 support. The older DMG release has different update and background-service behavior.
 
 ## Before you start
 
@@ -21,7 +21,7 @@ If the vault moved or access was revoked, choose it again. Existing pairing shou
 
 ## Beepster
 
-1. **Connect Beeper Desktop.** Sign in to Beeper, enable its Desktop API, and create a dedicated Beepster token. Choose Connect Beeper in Connector: its assistant asks for the token if needed, explains optional Contacts matching and delivery of matched names to your paired phone/watch; choose Continue or Not Now before the system Contacts prompt, and starts the gateway. Existing credentials are reused.
+1. **Connect Beeper Desktop.** Sign in to Beeper, enable its Desktop API, and create a dedicated Beepster token. Choose Connect Beeper in Connector: its assistant asks for the token if needed, explains optional Contacts matching and delivery of matched names to your paired phone/watch; choose Continue to open the system Contacts prompt, where you can allow or deny access, and starts the gateway. Existing credentials are reused.
 2. **Connect privately.** Install/connect Tailscale on Mac and phone so your watch can reach Beepster away from home. The assistant creates this route when Tailscale is ready; otherwise choose Start private connection.
 3. **Pair your phone.** Choose Connect phone, save the pairing details in Pebble → Beepster → Settings, and refresh a chat on the watch.
 
@@ -57,7 +57,7 @@ Pome’s direct HomeKit connection is the default for the next release. The sign
 
 1. In Pome, select Even G2 and connect Apple Home. It shares the existing HomeKit helper; no second Connector build is needed.
 2. Start the G2 connection with Tailscale connected on Mac and phone. Copy pairing into Pome’s settings in the Even phone app. The G2 route and credential are separate from Pebble pairing.
-3. On Apple Silicon, first setup prepares free local Parakeet dictation by downloading public model files. Audio is transcribed on the Mac; temporary audio is deleted after processing. Intel Macs need a custom speech provider for dictation. A custom hosted provider receives audio under its own policy and may charge for usage.
+3. On Apple Silicon, choose Set up local dictation to review and confirm the optional public model download (about500MB; allow1GB free disk space). Audio is transcribed on the Mac; temporary audio is deleted after processing. Intel Macs need a custom speech provider for dictation. A custom hosted provider receives audio under its own policy and may charge for usage.
 4. Open Pome on the glasses. Verify navigation, a fresh camera image and dictation; review the proposed home action before confirming it. Mac health checks do not replace physical glasses tests. Basic microphone, camera and room controls have been user-tested; newer menu and dictation UX remains a separate acceptance check.
 
 ## Optional Hermes and OpenClaw
@@ -82,3 +82,16 @@ App Store updates are managed by Apple. Keep Tailscale connected on both devices
 For a migration from the DMG release, preserve existing pairing and avoid running both gateway owners. The prepared Switch from previous service action identifies the known older Beepster service and asks before stopping it and disabling its automatic launch. Unknown service owners are never stopped. This handoff still requires sandbox migration validation before release. Do not delete preferences, Keychain items or sandbox containers to fix a red light.
 
 See [Privacy](PRIVACY.md) for local data, camera caching, permissions and third-party connections.
+
+
+## Beepster and DayFrame for Even G2
+
+Choose Even G2, then Beepster or DayFrame. Beepster uses the existing Beeper Desktop connection; DayFrame uses Calendars access and is read-only. Start the G2 connection and copy pairing into that app's Even phone settings. DayFrame does not require speech setup. Optional local dictation has an explicit setup/download choice; a custom provider requires confirmation of where recordings are sent. Test a real conversation or calendar refresh on the glasses after pairing.
+
+This candidate includes Pome Apple Home controls and cameras. The separate direct-download candidate has different availability; its coming-soon restriction does not apply to this Store build. Actual fresh-install, permission, window lifecycle and device checks remain separately recorded in candidate evidence. The unresolved Beepster Pebble dictation failure is not claimed fixed by this update.
+
+## Even G2 review packages
+
+The exact companion packages bundled with this candidate are [Pome0.1.33](cloud/Resources/EvenG2/pome/dist/pome-0.1.33.ehpk), [Beepster0.1.18](cloud/Resources/EvenG2/beepster/dist/beepster-0.1.18.ehpk), and [DayFrame0.1.8](cloud/Resources/EvenG2/dayframe/dist/dayframe-0.1.8.ehpk). View this guide at the frozen Store97 commit to keep these links tied to the submitted source.
+
+These are companion packages for compatible glasses and the Even phone app. Their personal Beta publication does not make them publicly installable for every account. Review access must include an actual supported installation arrangement; downloading a package alone does not grant Beta access. The Connector can be set up on the Mac without wearable hardware, but end-to-end wearable features require that hardware.

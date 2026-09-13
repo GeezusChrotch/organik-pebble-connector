@@ -94,6 +94,7 @@ export function createServer({ beeperClient, openClawClient = null, hermesClient
   const cache = new Map();
   const replyRequests = new Map();
   const pendingReplies = new Map();
+  let deniedPreviewID = null;
   let activePairingCode = pairingCode;
   let pairingAvailable = Boolean(pairingCode);
   const agents = createAgentApprovals({clients:{openclaw:telegramApprovals && openClawClient && beeperClient ? createOpenClawTelegramClient({beeper:beeperClient,readLinks}) : openClawClient, hermes:hermesClient}, readLinks});
@@ -154,7 +155,17 @@ export function createServer({ beeperClient, openClawClient = null, hermesClient
       }
 
       if (url.pathname === '/v1/media/access' && request.method === 'GET') {
-        sendJSON(response, 200, await mediaAccessProbe());
+        let access = await mediaAccessProbe();
+        if (access.allowed && deniedPreviewID) {
+          try {
+            const preview = await beeperClient.getAttachmentPreview(deniedPreviewID);
+            if (preview) deniedPreviewID = null;
+            else access = {supported:true, allowed:false, code:'CHECK_FAILED'};
+          } catch {
+            access = {supported:true, allowed:false, code:'MEDIA_PERMISSION'};
+          }
+        }
+        sendJSON(response, 200, access);
         return;
       }
 
@@ -224,8 +235,10 @@ export function createServer({ beeperClient, openClawClient = null, hermesClient
         const cursor = url.searchParams.get('cursor') || '';
         const requestedInbox = url.searchParams.get('inbox') || 'primary';
         const inbox = ['primary', 'low-priority', 'archive'].includes(requestedInbox) ? requestedInbox : 'primary';
-        const result = await withCache(`chats:${inbox}:${cursor}`, () =>
-          beeperClient.listChats(boundedLimit(url.searchParams.get('limit')), cursor, inbox));
+        const includeMerged = url.searchParams.get('includeMerged') === '1';
+        const limit = boundedLimit(url.searchParams.get('limit'));
+        const result = await withCache(`chats:${inbox}:${cursor}:${limit}:${includeMerged}`, () =>
+          beeperClient.listChats(limit, cursor, inbox, includeMerged));
         const page = Array.isArray(result.value) ? { items: result.value } : result.value;
         sendJSON(response, 200, { ...page, ...(result.stale ? { stale: true } : {}) });
         return;
@@ -390,7 +403,8 @@ export function createServer({ beeperClient, openClawClient = null, hermesClient
           const timeout = error.killed === true || /timeout|timed out/i.test(String(error.message || ''));
           logger.error(`attachment preview failed code=${code} denied=${denied} missing=${missing} timeout=${timeout}`);
           if (denied) {
-            sendJSON(response, 403, {error: 'Mac media access is blocked. Open the Connector to enable Apple Messages media access.', code: 'MEDIA_PERMISSION'});
+            deniedPreviewID = attachmentMatch[1];
+            sendJSON(response, 403, {error: 'Mac media access is blocked. Open the Connector to enable Apple Messages media access.', code: 'MEDIA_PERMISSION', stage: ['read-file','run-converter','native-read'].includes(error.mediaStage) ? error.mediaStage : 'locate-file'});
             return;
           }
           throw error;

@@ -1,11 +1,12 @@
 import { normalizeEmojiForPebble } from './emoji.js';
 import { tokenizeEmojiForWatch } from './emoji-assets.js';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createWatchPreview } from './image-preview.js';
+import { nativePreview } from './native-media.js';
 import { messageReactions } from './reactions.js';
 import { youtubePreview, youtubeVideoID, downloadYouTubeThumbnail } from './youtube-preview.js';
 import imageProcessing from './pebble-image.cjs';
@@ -174,6 +175,7 @@ export class BeeperClient {
     this.previewCreator = previewCreator;
     this.contactResolver = contactResolver;
     this.attachments = new Map();
+    this.g2ChatPages = new Map();
     this.previewCache = new Map();
     this.previewPromises = new Map();
     this.chatContexts = new Map();
@@ -301,9 +303,38 @@ export class BeeperClient {
     return this.accountContacts.get(accountID) || [];
   }
 
-  async listChats(limit, cursor = '', inbox = 'primary') {
+  async listChats(limit, cursor = '', inbox = 'primary', includeMerged = false) {
     const cursorQuery = cursor ? `&cursor=${encodeURIComponent(cursor)}&direction=before` : '';
-    const result = await this.request(`/v1/chats/search?limit=${limit}&type=any&inbox=${encodeURIComponent(inbox)}${cursorQuery}`);
+    if (includeMerged && cursor) {
+      const [key,offsetText] = cursor.split(':');const snapshot=this.g2ChatPages.get(key);const offset=Number(offsetText);
+      if (!snapshot || !Number.isInteger(offset) || offset<0 || Date.now()-snapshot.created>15*60*1000) throw Error('Conversation list changed. Refresh Beepster.');
+      return this.g2ChatPage(key,snapshot.items,offset,limit);
+    }
+    let result;
+    if (includeMerged) {
+      // A merged container's own activity can be stale by days. Collect the inbox
+      // before sorting, so a recently active member cannot be buried on page two.
+      const all=[];let next='';const seen=new Set();
+      for(let page=0;page<25;page++){
+        const batch=await this.request(`/v1/chats/search?limit=200&type=any&inbox=${encodeURIComponent(inbox)}`+(next?`&cursor=${encodeURIComponent(next)}&direction=before`:''));
+        all.push(...(batch.items||[]));if(!batch.hasMore){next='';break;}
+        if(!batch.oldestCursor||seen.has(batch.oldestCursor))throw Error('Conversation pagination did not advance');
+        next=batch.oldestCursor;seen.add(next);
+      }
+      if(next)throw Error('Too many conversations to sort. Narrow the inbox.');
+      result={items:[...new Map(all.map(chat=>[chat.id,chat])).values()],hasMore:false};
+    } else result = await this.request(`/v1/chats/search?limit=${limit}&type=any&inbox=${encodeURIComponent(inbox)}${cursorQuery}`);
+    // G2 needs the actual member threads of Desktop's merged Matrix containers.
+    // Opt in so the existing Pebble listing and its saved aliases stay unchanged.
+    const merged = new Map();
+    if (includeMerged) await Promise.all((result.items || []).filter(chat => chat.merge?.chatIDs?.length).map(async chat => {
+      const chatIDs = [...new Set(chat.merge.chatIDs)].filter(id => typeof id === 'string' && id !== chat.id);
+      const members = await Promise.all(chatIDs.map(async id => {
+        const member = await this.request(`/v1/chats/${encodeURIComponent(id)}`);
+        return {id, network: member.network || '', lastActivity: member.lastActivity || member.lastActivityAt || ''};
+      }));
+      merged.set(chat.id, {chatIDs, defaultChatID: chatIDs.includes(chat.merge.defaultChatID) ? chat.merge.defaultChatID : null, members});
+    }));
     const contactsByAccount = new Map();
     const unresolvedChats = (result.items || []).filter((chat) => needsContactEnrichment(chat));
     const unresolvedAccounts = [...new Set(unresolvedChats.map((chat) => chat.accountID).filter(Boolean))];
@@ -355,6 +386,8 @@ export class BeeperClient {
       while (this.chatContexts.size > 100) this.chatContexts.delete(this.chatContexts.keys().next().value);
       return {
         id: chat.id,
+        ...(includeMerged ? {lastActivity: Math.max(Date.parse(chat.lastActivity || chat.lastActivityAt || chat.preview?.timestamp || '') || 0,...(merged.get(chat.id)?.members||[]).map(m=>Date.parse(m.lastActivity)||0))} : {}),
+        ...(merged.has(chat.id) ? {merge: merged.get(chat.id)} : {}),
         name,
         network: chat.network || '',
         unreadCount: chat.unreadCount || 0,
@@ -370,18 +403,23 @@ export class BeeperClient {
       const key = item.name.toLocaleLowerCase();
       appleNameCounts.set(key, (appleNameCounts.get(key) || 0) + 1);
     }
-    return {
-      items: items.map((item) => {
+    const normalized = items.map((item) => {
         const { identifierKind, ...watchItem } = item;
         if (identifierKind && appleNameCounts.get(item.name.toLocaleLowerCase()) > 1) {
           watchItem.name = `${item.name} (${identifierKind})`;
         }
         return watchItem;
-      }),
-      hasMore: Boolean(result.hasMore),
-      nextCursor: result.oldestCursor || null
-    };
+      });
+    if (includeMerged) {
+      normalized.sort((a,b)=>(b.lastActivity||0)-(a.lastActivity||0));
+      const key='g2-'+randomUUID();this.g2ChatPages.set(key,{items:normalized,created:Date.now()});
+      for(const [oldKey,snapshot] of this.g2ChatPages)if(Date.now()-snapshot.created>15*60*1000)this.g2ChatPages.delete(oldKey);
+      while(this.g2ChatPages.size>128)this.g2ChatPages.delete(this.g2ChatPages.keys().next().value);
+      return this.g2ChatPage(key,normalized,0,limit);
+    }
+    return {items:normalized,hasMore:Boolean(result.hasMore),nextCursor:result.oldestCursor||null};
   }
+  g2ChatPage(key,items,offset,limit){const end=offset+limit;return {items:items.slice(offset,end),hasMore:end<items.length,nextCursor:end<items.length?`${key}:${end}`:null};}
 
   resolveMessageSender(chatID, message) {
     if (message.isSender) return 'Me';
@@ -475,8 +513,10 @@ export class BeeperClient {
     // Bridges expose tapback notices as hidden linked messages; the parent
     // already carries the authoritative reactions array. Never render the notice.
     const items = (result.items || []).slice(0, MAX_MESSAGE_PAGE).filter(message => message.isHidden !== true).reverse().map((message) => {
-      const attachment = (message.attachments || []).map((item, index) =>
-        this.rememberAttachment(message.id, item, index)).find(Boolean) || (!hideLinks ? this.rememberYouTube(message) : null);
+      const attachments = (message.attachments || []).map((item, index) =>
+        this.rememberAttachment(message.id, item, index)).filter(Boolean);
+      if (!attachments.length && !hideLinks) { const youtube = this.rememberYouTube(message); if (youtube) attachments.push(youtube); }
+      const attachment = attachments[0] || null;
       let text = messageDisplayText(message.text || '', hideLinks);
       if (attachment?.title) text = text.replace(/https?:\/\/[^\s<>"']+/g, url => youtubeVideoID(url) ? attachment.title : url);
       if (attachment?.title && !text.includes(attachment.title)) text = [text, attachment.title].filter(Boolean).join('\n');
@@ -497,7 +537,8 @@ export class BeeperClient {
         }),
         time: normalizeTime(message.timestamp),
         timestamp: message.timestamp || '',
-        attachment
+        attachment,
+        attachments
       };
     });
     return { items, hasMore: Boolean(result.hasMore), nextCursor: result.oldestCursor || null };
@@ -538,6 +579,13 @@ export class BeeperClient {
     const outputPath = join(directory, 'preview.bmp');
     try {
       if (attachment.sourceURL.startsWith('file://')) {
+        if (process.env.BEEPSTER_NATIVE_MEDIA === '1') {
+          if (process.env.BEEPSTER_ATTACHMENTS_DIR && fileURLToPath(attachment.sourceURL).startsWith(process.env.BEEPSTER_ATTACHMENTS_DIR + '/')) return {...await nativePreview(fileURLToPath(attachment.sourceURL), attachment.kind, mode),kind:attachment.kind};
+          // Beeper owns its media cache. Fetch through its authenticated asset API;
+          // never ask the sandboxed child to read another app's private folder.
+          await this.downloadAttachment(attachment.sourceURL, inputPath);
+          return {...await nativePreview(inputPath, attachment.kind, mode),kind:attachment.kind};
+        }
         try {
           await access(fileURLToPath(attachment.sourceURL));
         } catch (error) {
@@ -554,16 +602,22 @@ export class BeeperClient {
       if (attachment.publicThumbnail) {
         await writeFile(inputPath, await downloadYouTubeThumbnail(attachment.sourceURL, this.fetch));
       } else {
-      const response = await this.response(`/v1/assets/serve?url=${encodeURIComponent(attachment.sourceURL)}`, {
-        headers: { Accept: '*/*' }, signal: AbortSignal.timeout(10000)
-      });
-      await writeFile(inputPath, Buffer.from(await response.arrayBuffer()));
+        await this.downloadAttachment(attachment.sourceURL, inputPath);
       }
       const preview = await this.previewCreator(inputPath, outputPath, undefined, { mode, kind: attachment.kind });
       return { ...preview, kind: attachment.kind };
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  }
+
+  async downloadAttachment(sourceURL, inputPath) {
+    const response = await this.response(`/v1/assets/serve?url=${encodeURIComponent(sourceURL)}`, {
+      headers: {Accept:'*/*'}, signal:AbortSignal.timeout(10000)
+    }).catch(error => { if (/HTTP 404|HTTP 410/.test(error.message)) error.code='BEEPSTER_MEDIA_MISSING'; throw error; });
+    const chunks=[];let size=0;
+    for await (const chunk of response.body) { size+=chunk.length;if(size>20*1024*1024)throw Object.assign(Error('Attachment exceeds preview size limit'),{code:'MEDIA_SIZE'});chunks.push(chunk); }
+    await writeFile(inputPath, Buffer.concat(chunks));
   }
 
   async sendReply(chatID, text) {

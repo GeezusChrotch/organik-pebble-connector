@@ -538,6 +538,24 @@ final class CameraCacheController: UIViewController, HMHomeManagerDelegate, HMCa
             guard ["natural", "high-contrast", "original"].contains(mode) else { return (400, ["error": "Invalid image mode"]) }
             let selected = imageID.flatMap { wanted in history[id]?.first { $0.id == wanted } } ?? (imageID == nil ? cache[id] : nil)
             guard let entry = selected else { return (404, ["error": imageID == nil ? "No prepared image yet" : "Saved image expired; reopen camera history"]) }
+            if platform == "even-g2" {
+                do {
+                    let scale = min(432.0 / Double(entry.sourceImage.width), 216.0 / Double(entry.sourceImage.height))
+                    let width = max(1, Int((Double(entry.sourceImage.width) * scale).rounded()))
+                    let height = max(1, Int((Double(entry.sourceImage.height) * scale).rounded()))
+                    let rgbaPixels = try rgba(entry.sourceImage, width: width, height: height)
+                    var gray = [UInt8](repeating: 0, count: width * height)
+                    for i in gray.indices {
+                        let j = i * 4
+                        let luminance = Double(rgbaPixels[j]) * 0.2126 + Double(rgbaPixels[j + 1]) * 0.7152 + Double(rgbaPixels[j + 2]) * 0.0722
+                        gray[i] = UInt8(max(0, min(255, luminance.rounded())))
+                    }
+                    return (200, ["width": width, "height": height, "encoding": "gray8", "pixels": Data(gray).base64EncodedString(),
+                        "image": entry.id, "age": Int(Date().timeIntervalSince(entry.snapshotAt)),
+                        "preparedAt": entry.preparedAt.timeIntervalSince1970, "snapshotAt": entry.snapshotAt.timeIntervalSince1970,
+                        "prepareSeconds": entry.duration, "refreshError": errors[id] ?? ""])
+                } catch { return (500, ["error": "G2 image processing failed"]) }
+            }
             if entry.frames["\(platform)-\(mode)"] == nil {
                 do { entry.frames.merge(try prepareFrames(entry.sourceImage, mode: mode)) { _, new in new } }
                 catch { return (500, ["error": "Image processing failed"]) }

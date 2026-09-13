@@ -1,0 +1,7 @@
+# Beepster G2 0.1.7 / Connector 71
+
+Conversations show full wrapped message text from oldest to newest and open at the bottom. Each swipe moves two lines through a fixed five-line viewport. Scrolling above the first loaded line loads older history and retains the adjacent reading position. New messages follow the bottom only when already there; reading older text retains its anchor. Attachment taps open visible media, with a chooser when needed, and back restores the conversation offset. Reaction sprites appear after message text. The system-menu actions remain unchanged.
+
+61 G2 tests and 8 bridge tests passed. Regression coverage includes chronology, full long text, two-line viewport overlap, both scroll boundaries, bottom-follow versus history reading, older-page prepending, inline reactions, attachment return position, source service icons, read receipts on visible messages when enabled, and existing menu/microphone/emoji checks. Browser demo verified continuous thread, two-line movement and newest text/reaction at bottom.
+
+Connector 71 installed through canonical installer; installed frontend bytes match candidate, login registration enabled, all Beepster requirements and private route ready, authenticated G2 health reports Beepster and dictation ready. No real messages sent and no real chats archived during tests. Actual G2 scroll feel and rendering remain hardware acceptance checks.

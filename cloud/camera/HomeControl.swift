@@ -21,7 +21,8 @@ final class HomeControl {
             service.characteristics.first { $0.characteristicType == type }
         }
     }
-    static let types: [String: String] = [
+    static let types: [String: String] = {
+        var result: [String: String] = [
         HMServiceTypeLightbulb: "light", HMServiceTypeFan: "fan", HMServiceTypeVentilationFan: "fan",
         HMServiceTypeSwitch: "switch", HMServiceTypeOutlet: "outlet",
         HMServiceTypeWindowCovering: "blinds", HMServiceTypeAirPurifier: "air-purifier",
@@ -34,7 +35,11 @@ final class HomeControl {
         HMServiceTypeSmokeSensor: "smoke-sensor", HMServiceTypeCarbonMonoxideSensor: "carbon-monoxide-sensor",
         HMServiceTypeCarbonDioxideSensor: "carbon-dioxide-sensor", HMServiceTypeAirQualitySensor: "air-quality-sensor"
     ]
-    static let fields: [String: String] = [
+        if #available(macCatalyst 18.0, iOS 18.0, *) { result[HMServiceTypeTelevision] = "television" }
+        return result
+    }()
+    static let fields: [String: String] = {
+        var result: [String: String] = [
         HMCharacteristicTypePowerState: "on", HMCharacteristicTypeActive: "on",
         HMCharacteristicTypeBrightness: "brightness", HMCharacteristicTypeHue: "hue",
         HMCharacteristicTypeSaturation: "saturation", HMCharacteristicTypeRotationSpeed: "speed",
@@ -47,12 +52,26 @@ final class HomeControl {
         HMCharacteristicTypeCarbonMonoxideDetected: "detected", HMCharacteristicTypeCarbonDioxideDetected: "detected",
         HMCharacteristicTypeAirQuality: "value"
     ]
+        if #available(macCatalyst 18.0, iOS 18.0, *) { result[HMCharacteristicTypeActiveIdentifier] = "inputId" }
+        return result
+    }()
     private func devices(_ homes: [HMHome]) -> [Device] {
         homes.flatMap { home in home.accessories.flatMap { accessory in
             accessory.services.compactMap { service in
                 Self.types[service.serviceType].map { Device(home: home, accessory: accessory, service: service, type: $0) }
             }
         }}.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+    private func inputs(_ d: Device) -> [[String: Any]] {
+        guard #available(macCatalyst 18.0, iOS 18.0, *), d.type == "television" else { return [] }
+        return (d.service.linkedServices ?? []).filter { $0.serviceType == HMServiceTypeInputSource }.compactMap { service in
+            func value(_ type: String) -> Any? { service.characteristics.first { $0.characteristicType == type }?.value }
+            guard let id = value(HMCharacteristicTypeIdentifier) as? NSNumber,
+                  (value(HMCharacteristicTypeCurrentVisibilityState) as? NSNumber)?.intValue != 1,
+                  (value(HMCharacteristicTypeIsConfigured) as? NSNumber)?.intValue != 0 else { return nil }
+            let name = (value(HMCharacteristicTypeConfiguredName) as? String).flatMap { $0.isEmpty ? nil : $0 } ?? service.name
+            return ["id": id, "name": name]
+        }
     }
     private func item(_ d: Device) -> [String: Any] {
         var state: [String: Any] = [:]
@@ -67,30 +86,40 @@ final class HomeControl {
         }
         return ["name": d.name, "type": d.type, "room": d.room,
                 "serviceId": d.id, "homeId": d.home.uniqueIdentifier.uuidString,
-                "reachable": d.accessory.isReachable, "state": state]
+                "reachable": d.accessory.isReachable, "state": state, "inputs": inputs(d)]
     }
-    // Refresh with bounded concurrency. Failed reads are explicitly unavailable,
-    // never silently presented as a fresh successful sensor sample.
+    // A read failure does not establish accessory reachability. Return only fields
+    // actually refreshed, retaining successful devices when other reads time out.
     private func refresh(_ ds: [Device], done: @escaping ([[String: Any]]) -> Void) {
-        let jobs = ds.flatMap { d in d.service.characteristics.filter {
-            Self.fields[$0.characteristicType] != nil && $0.properties.contains(HMCharacteristicPropertyReadable)
-        }.map { (d.id, $0) } }
-        var cursor = 0, pending = 0, ended = false, failed = Set<String>()
+        let jobs = ds.flatMap { d -> [(String, HMCharacteristic)] in
+            var cs = d.service.characteristics.filter { Self.fields[$0.characteristicType] != nil }
+            if #available(macCatalyst 18.0, iOS 18.0, *), d.type == "television" {
+                let metadata = [HMCharacteristicTypeIdentifier, HMCharacteristicTypeConfiguredName, HMCharacteristicTypeIsConfigured, HMCharacteristicTypeCurrentVisibilityState]
+                cs += (d.service.linkedServices ?? []).filter { $0.serviceType == HMServiceTypeInputSource }.flatMap { $0.characteristics.filter { metadata.contains($0.characteristicType) } }
+            }
+            return cs.filter { $0.properties.contains(HMCharacteristicPropertyReadable) }.map { (d.id,$0) }
+        }
+        var cursor = 0, pending = 0, ended = false, succeeded = Set<UUID>()
         func finish() {
             guard !ended else { return }; ended = true
             done(ds.map { d in var result = self.item(d)
-                if failed.contains(d.id) { result["reachable"] = false; result["state"] = [String: Any]() }
+                let fields = d.service.characteristics.filter {
+                    Self.fields[$0.characteristicType] != nil && $0.properties.contains(HMCharacteristicPropertyReadable)
+                }
+                let validKeys = Set(fields.filter { succeeded.contains($0.uniqueIdentifier) }.compactMap { Self.fields[$0.characteristicType] })
+                result["state"] = (result["state"] as? [String: Any] ?? [:]).filter { validKeys.contains($0.key) }
+                result["stateIncomplete"] = fields.contains { !succeeded.contains($0.uniqueIdentifier) }
                 return result
             })
         }
         func next() {
             guard !ended else { return }
             while pending < 8 && cursor < jobs.count {
-                let (id, c) = jobs[cursor]; cursor += 1; pending += 1
+                let (_, c) = jobs[cursor]; cursor += 1; pending += 1
                 c.readValue { error in
                     DispatchQueue.main.async {
                         guard !ended else { return }
-                        if error != nil { failed.insert(id) }
+                        if error == nil { succeeded.insert(c.uniqueIdentifier) }
                         pending -= 1; next()
                     }
                 }
@@ -99,8 +128,8 @@ final class HomeControl {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
             guard !ended else { return }
-            // At deadline we cannot certify which cached values are current.
-            ds.forEach { failed.insert($0.id) }; finish()
+            // Completed reads remain valid; pending or failed fields are omitted.
+            finish()
         }
         next()
     }
@@ -174,7 +203,7 @@ final class HomeControl {
                 scenes[0].0.executeActionSet(scenes[0].1, completionHandler: finish)
             }; return
         }
-        let counts = ["toggle": 0, "on": 0, "off": 0, "brightness": 1, "color": 2, "speed": 1, "position": 1]
+        let counts = ["toggle": 0, "on": 0, "off": 0, "brightness": 1, "color": 2, "speed": 1, "position": 1, "input": 1]
         guard let count = counts[action], path.count > count + 1 else { fail(reply, 404, "Unknown control"); return }
         let values = path.dropFirst().prefix(count).compactMap(Double.init)
         guard values.count == count, values.allSatisfy({ $0.isFinite }) else { fail(reply, 400, "Invalid control value"); return }
@@ -193,11 +222,14 @@ final class HomeControl {
         var valid = false
         switch action {
         case "on", "off", "toggle":
-            if ["light", "fan", "switch", "outlet", "humidifier", "dehumidifier", "air-purifier"].contains(d.type),
+            if ["light", "fan", "switch", "outlet", "humidifier", "dehumidifier", "air-purifier", "television"].contains(d.type),
                let power, power.properties.contains(HMCharacteristicPropertyWritable) {
                 valid = true
                 if action != "toggle" { writes.append((power, NSNumber(value: action == "on" ? 1 : 0))) }
             }
+        case "input":
+            if #available(macCatalyst 18.0, iOS 18.0, *) { valid = d.type == "television" && inputs(d).contains { ($0["id"] as? NSNumber)?.doubleValue == values[0] }
+                && add(HMCharacteristicTypeActiveIdentifier, values[0], 0...4294967295) }
         case "brightness": valid = d.type == "light" && add(HMCharacteristicTypeBrightness, values[0], 0...100)
         case "color": valid = d.type == "light" && add(HMCharacteristicTypeHue, values[0], 0...360) && add(HMCharacteristicTypeSaturation, values[1], 0...100)
         case "speed": valid = d.type == "fan" && add(HMCharacteristicTypeRotationSpeed, values[0], 0...100)

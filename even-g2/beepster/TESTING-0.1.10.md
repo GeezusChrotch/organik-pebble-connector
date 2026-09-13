@@ -1,0 +1,7 @@
+# Beepster 0.1.10 / Connector 74
+
+The reported missing icons after a possible system-menu transition was not reproduced on physical glasses. Code inspection found that the previous recovery immediately reused existing containers, and an interrupted transfer could leave stale layout state. New recovery waits 250ms for native overlay teardown, forces page/container recreation inside the serialized display queue and repaints every image. Interrupted epochs cannot mark a layout reusable. A delivered app-container gesture recovers if the foreground-exit event was missed. One automatic retry handles a transient failure during restoration.
+
+67 G2 tests and 8 bridge tests passed. Added simulated lost containers, missing opening event, close during an in-flight transfer, missing closing event followed by an app gesture, and a first-transfer rejection that recovers automatically. Existing microphone startup/no-rebuild-after-start regression still passes. Six rows, no footer, full-width dividers and one-line scrolling are retained.
+
+Connector 74 installed canonically with matching final frontend assets and enabled login registration. Authenticated G2 health reports Beepster and dictation ready. No real messages sent or chats archived. Physical acceptance: repeatedly open/dismiss the system menu from inbox and thread, select Quick reply/Dictate, scroll after return, and confirm all icons and dividers remain visible. This is a tested repair for identified recovery gaps, not confirmation of the user's exact hardware failure cause.

@@ -18,7 +18,8 @@ if(!demo){const displayStatus=document.createElement('p');displayStatus.setAttri
 if(!demo){const micStatus=document.createElement('p');micStatus.setAttribute('role','status');micStatus.textContent='Microphone: not started';display.onMicrophoneStatus=status=>{micStatus.textContent='Microphone: '+status;};previewPanel.append(micStatus);}
 if(demo){const note=document.createElement('p');note.textContent='Sample home only. These controls do not access your real devices.';previewPanel.append(note);}
 let store:SettingsStore|undefined;
-const save=async()=>{if(demo)localStorage.setItem('pome.demo.settings',JSON.stringify(api.settings));else {if(!store)throw new Error('Settings are still loading.');await store.save(api.settings);}};
+pome.saveSettings=async settings=>{if(demo)localStorage.setItem('pome.demo.settings',JSON.stringify(settings));else {if(!store)throw new Error('Settings are still loading.');await store.save(settings);}};
+const save=()=>pome.saveSettings(api.settings);
 const renderSettings=()=>settingsUI(settings,pome,save);pome.onSnapshot=renderSettings;settings.textContent='Loading saved Pome settings…';
 void (async()=>{
  if(!demo){await display.connect();store=new SettingsStore(display.bridge!,localStorage);Object.assign(api.settings,await store.load());}

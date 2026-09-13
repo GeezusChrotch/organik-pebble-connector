@@ -78,3 +78,20 @@ The G2 app displays a proposed home action for confirmation before executing it.
 The phone app stores pairing and display preferences locally in its app storage.
 
 Local Parakeet dictation downloads public model assets from Hugging Face during setup. Once cached, transcription runs on the Mac without uploading recordings. Audio is written to a private temporary WAV while the native helper reads it, then deleted after success or failure. The Connector does not retain transcripts. A custom speech provider remains optional and receives recordings only when selected.
+
+### DayFrame calendar app for G2
+
+DayFrame reads calendar names, event titles, dates, times and locations from your
+Mac through the shared Connector and your private Tailscale connection. It does
+not change calendar events or send calendar content to an AI provider. Calendar
+content stays in memory while DayFrame is open. The Even app stores your pairing
+and display/calendar preferences on your device; Disconnect in DayFrame removes
+its saved pairing. Your Mac's existing Calendars permission controls access.
+Countdowns are visual readouts and do not create alarms or notifications.
+
+
+## Current Store candidate: speech setup and G2 integrations
+
+Starting a G2 connection does not itself authorize downloading local speech models. Set up local dictation explains the roughly500MB Hugging Face model download and1GB free-space requirement and asks for a deliberate choice. Existing cached model data is reused. Download approval is stored locally. A newly selected custom speech endpoint requires explicit confirmation that recordings will be sent to that provider; changing the endpoint requires confirmation again. No hosted provider is chosen automatically.
+
+Beepster and DayFrame on Even G2 use the existing authenticated Beeper and calendar connections. Pome for Even G2 retains Apple Home controls and camera access. Phone pairing credentials remain separate from HomeKit helper management credentials. Store callbacks and private routes do not publish a public server.

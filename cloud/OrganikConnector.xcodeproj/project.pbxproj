@@ -1,385 +1,82 @@
 // !$*UTF8*$!
-{
-	archiveVersion = 1;
-	classes = {
-	};
-	objectVersion = 56;
-	objects = {
-
-/* Begin PBXBuildFile section */
-		0000000000000000000000C8 /* mac/AgentSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000064 /* mac/AgentSetupView.swift */; };
-		0000000000000000000000C9 /* mac/App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000065 /* mac/App.swift */; };
-		0000000000000000000000CA /* mac/BeepsterModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000066 /* mac/BeepsterModule.swift */; };
-		0000000000000000000000CB /* mac/BundledGatewayRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000067 /* mac/BundledGatewayRuntime.swift */; };
-		0000000000000000000000CC /* mac/ConnectorState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000068 /* mac/ConnectorState.swift */; };
-		0000000000000000000000CD /* mac/ConnectorUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000069 /* mac/ConnectorUpdater.swift */; };
-		0000000000000000000000CE /* mac/EvenG2Service.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006A /* mac/EvenG2Service.swift */; };
-		0000000000000000000000CF /* mac/EvenG2View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006B /* mac/EvenG2View.swift */; };
-		0000000000000000000000D0 /* mac/EventzModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006C /* mac/EventzModule.swift */; };
-		0000000000000000000000D1 /* mac/EventzQueryRange.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006D /* mac/EventzQueryRange.swift */; };
-		0000000000000000000000D2 /* mac/ExternalService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006E /* mac/ExternalService.swift */; };
-		0000000000000000000000D3 /* mac/LegacyGatewayHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000006F /* mac/LegacyGatewayHandoff.swift */; };
-		0000000000000000000000D4 /* mac/NotesyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000070 /* mac/NotesyService.swift */; };
-		0000000000000000000000D5 /* mac/PomeCameraHealth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000071 /* mac/PomeCameraHealth.swift */; };
-		0000000000000000000000D6 /* mac/PomeCameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000072 /* mac/PomeCameraPreview.swift */; };
-		0000000000000000000000D7 /* mac/PomeCameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000073 /* mac/PomeCameraService.swift */; };
-		0000000000000000000000D8 /* mac/ReminderzModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000074 /* mac/ReminderzModule.swift */; };
-		0000000000000000000000D9 /* mac/SetupStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000075 /* mac/SetupStep.swift */; };
-		0000000000000000000000DA /* mac/Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000076 /* mac/Shared.swift */; };
-		0000000000000000000000DB /* mac/StoreAgentConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000077 /* mac/StoreAgentConfiguration.swift */; };
-		000000000000000000000190 /* Resources/ACKNOWLEDGMENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000012C /* Resources/ACKNOWLEDGMENTS.md */; };
-		000000000000000000000191 /* Resources/Beepster in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000012D /* Resources/Beepster */; };
-		000000000000000000000192 /* Resources/EvenG2 in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000012E /* Resources/EvenG2 */; };
-		000000000000000000000193 /* Resources/LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 00000000000000000000012F /* Resources/LICENSE.txt */; };
-		000000000000000000000194 /* Resources/Notesy in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000130 /* Resources/Notesy */; };
-		000000000000000000000195 /* Resources/Organik.icns in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000131 /* Resources/Organik.icns */; };
-		000000000000000000000196 /* Resources/PRIVACY.md in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000132 /* Resources/PRIVACY.md */; };
-		000000000000000000000197 /* Resources/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000133 /* Resources/PrivacyInfo.xcprivacy */; };
-		000000000000000000000198 /* Resources/Reminderz-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000134 /* Resources/Reminderz-LICENSE.txt */; };
-		000000000000000000000199 /* Resources/Speech in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000135 /* Resources/Speech */; };
-		00000000000000000000019A /* Resources/container-migration.plist in Resources */ = {isa = PBXBuildFile; fileRef = 000000000000000000000136 /* Resources/container-migration.plist */; };
-/* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		0000000000000000000003E9 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0000000000000000000003E8 /* camera/CameraProbe.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = A00000000000000000000005;
-			remoteInfo = CameraProbe;
-		};
-		03055B1C305444AE001A15A2 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 0000000000000000000003E8 /* camera/CameraProbe.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = A00000000000000000000008;
-			remoteInfo = CameraProbe;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXFileReference section */
-		000000000000000000000009 /* Organik Apps Pebble Connector.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = "Organik Apps Pebble Connector.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		000000000000000000000064 /* mac/AgentSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/AgentSetupView.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000065 /* mac/App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/App.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000066 /* mac/BeepsterModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/BeepsterModule.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000067 /* mac/BundledGatewayRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/BundledGatewayRuntime.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000068 /* mac/ConnectorState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/ConnectorState.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000069 /* mac/ConnectorUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/ConnectorUpdater.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006A /* mac/EvenG2Service.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/EvenG2Service.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006B /* mac/EvenG2View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/EvenG2View.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006C /* mac/EventzModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/EventzModule.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006D /* mac/EventzQueryRange.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/EventzQueryRange.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006E /* mac/ExternalService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/ExternalService.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000006F /* mac/LegacyGatewayHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/LegacyGatewayHandoff.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000070 /* mac/NotesyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/NotesyService.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000071 /* mac/PomeCameraHealth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/PomeCameraHealth.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000072 /* mac/PomeCameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/PomeCameraPreview.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000073 /* mac/PomeCameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/PomeCameraService.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000074 /* mac/ReminderzModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/ReminderzModule.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000075 /* mac/SetupStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/SetupStep.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000076 /* mac/Shared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/Shared.swift; sourceTree = SOURCE_ROOT; };
-		000000000000000000000077 /* mac/StoreAgentConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = mac/StoreAgentConfiguration.swift; sourceTree = SOURCE_ROOT; };
-		00000000000000000000012C /* Resources/ACKNOWLEDGMENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Resources/ACKNOWLEDGMENTS.md; sourceTree = SOURCE_ROOT; };
-		00000000000000000000012D /* Resources/Beepster */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/Beepster; sourceTree = SOURCE_ROOT; };
-		00000000000000000000012E /* Resources/EvenG2 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/EvenG2; sourceTree = SOURCE_ROOT; };
-		00000000000000000000012F /* Resources/LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Resources/LICENSE.txt; sourceTree = SOURCE_ROOT; };
-		000000000000000000000130 /* Resources/Notesy */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/Notesy; sourceTree = SOURCE_ROOT; };
-		000000000000000000000131 /* Resources/Organik.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Resources/Organik.icns; sourceTree = SOURCE_ROOT; };
-		000000000000000000000132 /* Resources/PRIVACY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Resources/PRIVACY.md; sourceTree = SOURCE_ROOT; };
-		000000000000000000000133 /* Resources/PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Resources/PrivacyInfo.xcprivacy; sourceTree = SOURCE_ROOT; };
-		000000000000000000000134 /* Resources/Reminderz-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Resources/Reminderz-LICENSE.txt"; sourceTree = SOURCE_ROOT; };
-		000000000000000000000135 /* Resources/Speech */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/Speech; sourceTree = SOURCE_ROOT; };
-		000000000000000000000136 /* Resources/container-migration.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Resources/container-migration.plist"; sourceTree = SOURCE_ROOT; };
-		0000000000000000000003E8 /* camera/CameraProbe.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = camera/CameraProbe.xcodeproj; sourceTree = SOURCE_ROOT; };
-/* End PBXFileReference section */
-
-/* Begin PBXGroup section */
-		000000000000000000000003 = {
-			isa = PBXGroup;
-			children = (
-				0000000000000000000003E8 /* camera/CameraProbe.xcodeproj */,
-				000000000000000000000064 /* mac/AgentSetupView.swift */,
-				000000000000000000000065 /* mac/App.swift */,
-				000000000000000000000066 /* mac/BeepsterModule.swift */,
-				000000000000000000000067 /* mac/BundledGatewayRuntime.swift */,
-				000000000000000000000068 /* mac/ConnectorState.swift */,
-				000000000000000000000069 /* mac/ConnectorUpdater.swift */,
-				00000000000000000000006A /* mac/EvenG2Service.swift */,
-				00000000000000000000006B /* mac/EvenG2View.swift */,
-				00000000000000000000006C /* mac/EventzModule.swift */,
-				00000000000000000000006D /* mac/EventzQueryRange.swift */,
-				00000000000000000000006E /* mac/ExternalService.swift */,
-				00000000000000000000006F /* mac/LegacyGatewayHandoff.swift */,
-				000000000000000000000070 /* mac/NotesyService.swift */,
-				000000000000000000000071 /* mac/PomeCameraHealth.swift */,
-				000000000000000000000072 /* mac/PomeCameraPreview.swift */,
-				000000000000000000000073 /* mac/PomeCameraService.swift */,
-				000000000000000000000074 /* mac/ReminderzModule.swift */,
-				000000000000000000000075 /* mac/SetupStep.swift */,
-				000000000000000000000076 /* mac/Shared.swift */,
-				000000000000000000000077 /* mac/StoreAgentConfiguration.swift */,
-				00000000000000000000012C /* Resources/ACKNOWLEDGMENTS.md */,
-				00000000000000000000012D /* Resources/Beepster */,
-				00000000000000000000012E /* Resources/EvenG2 */,
-				00000000000000000000012F /* Resources/LICENSE.txt */,
-				000000000000000000000130 /* Resources/Notesy */,
-				000000000000000000000131 /* Resources/Organik.icns */,
-				000000000000000000000132 /* Resources/PRIVACY.md */,
-				000000000000000000000133 /* Resources/PrivacyInfo.xcprivacy */,
-				000000000000000000000134 /* Resources/Reminderz-LICENSE.txt */,
-				000000000000000000000135 /* Resources/Speech */,
-				000000000000000000000136 /* Resources/container-migration.plist */,
-				000000000000000000000004 /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		000000000000000000000004 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				000000000000000000000009 /* Organik Apps Pebble Connector.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		03055B19305444AD001A15A2 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				03055B1D305444AE001A15A2 /* Pome Cameras.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-/* End PBXGroup section */
-
-/* Begin PBXNativeTarget section */
-		000000000000000000000005 /* OrganikConnector */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 000000000000000000000007 /* Build configuration list for PBXNativeTarget "OrganikConnector" */;
-			buildPhases = (
-				00000000000000000000000A /* Sources */,
-				00000000000000000000000B /* Resources */,
-				0000000000000000000003EB /* ShellScript */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				0000000000000000000003EA /* PBXTargetDependency */,
-			);
-			name = OrganikConnector;
-			productName = "Organik Apps Pebble Connector";
-			productReference = 000000000000000000000009 /* Organik Apps Pebble Connector.app */;
-			productType = "com.apple.product-type.application";
-		};
-/* End PBXNativeTarget section */
-
-/* Begin PBXProject section */
-		000000000000000000000001 /* Project object */ = {
-			isa = PBXProject;
-			attributes = {
-				LastUpgradeCheck = 2660;
-			};
-			buildConfigurationList = 000000000000000000000002 /* Build configuration list for PBXProject "OrganikConnector" */;
-			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = en;
-			hasScannedForEncodings = 0;
-			knownRegions = (
-				en,
-				Base,
-			);
-			mainGroup = 000000000000000000000003;
-			productRefGroup = 000000000000000000000004 /* Products */;
-			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = 03055B19305444AD001A15A2 /* Products */;
-					ProjectRef = 0000000000000000000003E8 /* camera/CameraProbe.xcodeproj */;
-				},
-			);
-			projectRoot = "";
-			targets = (
-				000000000000000000000005 /* OrganikConnector */,
-			);
-		};
-/* End PBXProject section */
-
-/* Begin PBXReferenceProxy section */
-		03055B1D305444AE001A15A2 /* Pome Cameras.app */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.application;
-			path = "Pome Cameras.app";
-			remoteRef = 03055B1C305444AE001A15A2 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-/* End PBXReferenceProxy section */
-
-/* Begin PBXResourcesBuildPhase section */
-		00000000000000000000000B /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				000000000000000000000190 /* Resources/ACKNOWLEDGMENTS.md in Resources */,
-				000000000000000000000191 /* Resources/Beepster in Resources */,
-				000000000000000000000192 /* Resources/EvenG2 in Resources */,
-				000000000000000000000193 /* Resources/LICENSE.txt in Resources */,
-				000000000000000000000194 /* Resources/Notesy in Resources */,
-				000000000000000000000195 /* Resources/Organik.icns in Resources */,
-				000000000000000000000196 /* Resources/PRIVACY.md in Resources */,
-				000000000000000000000197 /* Resources/PrivacyInfo.xcprivacy in Resources */,
-				000000000000000000000198 /* Resources/Reminderz-LICENSE.txt in Resources */,
-				000000000000000000000199 /* Resources/Speech in Resources */,
-				00000000000000000000019A /* Resources/container-migration.plist in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		0000000000000000000003EB /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/bash;
-			shellScript = "bash \"$SRCROOT/scripts/embed-helpers.sh\"";
-		};
-/* End PBXShellScriptBuildPhase section */
-
-/* Begin PBXSourcesBuildPhase section */
-		00000000000000000000000A /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0000000000000000000000C8 /* mac/AgentSetupView.swift in Sources */,
-				0000000000000000000000C9 /* mac/App.swift in Sources */,
-				0000000000000000000000CA /* mac/BeepsterModule.swift in Sources */,
-				0000000000000000000000CB /* mac/BundledGatewayRuntime.swift in Sources */,
-				0000000000000000000000CC /* mac/ConnectorState.swift in Sources */,
-				0000000000000000000000CD /* mac/ConnectorUpdater.swift in Sources */,
-				0000000000000000000000CE /* mac/EvenG2Service.swift in Sources */,
-				0000000000000000000000CF /* mac/EvenG2View.swift in Sources */,
-				0000000000000000000000D0 /* mac/EventzModule.swift in Sources */,
-				0000000000000000000000D1 /* mac/EventzQueryRange.swift in Sources */,
-				0000000000000000000000D2 /* mac/ExternalService.swift in Sources */,
-				0000000000000000000000D3 /* mac/LegacyGatewayHandoff.swift in Sources */,
-				0000000000000000000000D4 /* mac/NotesyService.swift in Sources */,
-				0000000000000000000000D5 /* mac/PomeCameraHealth.swift in Sources */,
-				0000000000000000000000D6 /* mac/PomeCameraPreview.swift in Sources */,
-				0000000000000000000000D7 /* mac/PomeCameraService.swift in Sources */,
-				0000000000000000000000D8 /* mac/ReminderzModule.swift in Sources */,
-				0000000000000000000000D9 /* mac/SetupStep.swift in Sources */,
-				0000000000000000000000DA /* mac/Shared.swift in Sources */,
-				0000000000000000000000DB /* mac/StoreAgentConfiguration.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		0000000000000000000003EA /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			targetProxy = 0000000000000000000003E9 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
-/* Begin XCBuildConfiguration section */
-		000000000000000000000006 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				SDKROOT = macosx;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Debug;
-		};
-		000000000000000000000008 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/mac/AppStore/Connector.entitlements";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
-				DEVELOPMENT_TEAM = 4N9LJD597R;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				EXECUTABLE_NAME = "organik-pebble-connector";
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "$(SRCROOT)/mac/Info.plist";
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.organikapps.pebbleconnector;
-				PRODUCT_NAME = "Organik Apps Pebble Connector";
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = APP_STORE;
-				SWIFT_VERSION = 5.0;
-				VERSIONING_SYSTEM = "apple-generic";
-			};
-			name = Debug;
-		};
-		00000000000000000000000C /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				SDKROOT = macosx;
-				SWIFT_VERSION = 5.0;
-			};
-			name = Release;
-		};
-		00000000000000000000000D /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/mac/AppStore/Connector.entitlements";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = YES;
-				CURRENT_PROJECT_VERSION = 58;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 4N9LJD597R;
-				ENABLE_APP_SANDBOX = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				EXECUTABLE_NAME = "organik-pebble-connector";
-				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "$(SRCROOT)/mac/Info.plist";
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = org.organikapps.pebbleconnector;
-				PRODUCT_NAME = "Organik Apps Pebble Connector";
-				STRIP_INSTALLED_PRODUCT = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = APP_STORE;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 5.0;
-				VERSIONING_SYSTEM = "apple-generic";
-			};
-			name = Release;
-		};
-/* End XCBuildConfiguration section */
-
-/* Begin XCConfigurationList section */
-		000000000000000000000002 /* Build configuration list for PBXProject "OrganikConnector" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				000000000000000000000006 /* Debug */,
-				00000000000000000000000C /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
-		000000000000000000000007 /* Build configuration list for PBXNativeTarget "OrganikConnector" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				000000000000000000000008 /* Debug */,
-				00000000000000000000000D /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
-/* End XCConfigurationList section */
-	};
-	rootObject = 000000000000000000000001 /* Project object */;
-}
+{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {
+000000000000000000000064 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/AgentSetupView.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000C8 = {isa = PBXBuildFile; fileRef = 000000000000000000000064;};
+000000000000000000000065 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/App.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000C9 = {isa = PBXBuildFile; fileRef = 000000000000000000000065;};
+000000000000000000000066 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/BeepsterModule.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000CA = {isa = PBXBuildFile; fileRef = 000000000000000000000066;};
+000000000000000000000067 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/BundledGatewayRuntime.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000CB = {isa = PBXBuildFile; fileRef = 000000000000000000000067;};
+000000000000000000000068 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/ConnectorState.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000CC = {isa = PBXBuildFile; fileRef = 000000000000000000000068;};
+000000000000000000000069 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/ConnectorUpdater.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000CD = {isa = PBXBuildFile; fileRef = 000000000000000000000069;};
+00000000000000000000006A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/EvenG2Service.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000CE = {isa = PBXBuildFile; fileRef = 00000000000000000000006A;};
+00000000000000000000006B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/EvenG2View.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000CF = {isa = PBXBuildFile; fileRef = 00000000000000000000006B;};
+00000000000000000000006C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/EventzModule.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000D0 = {isa = PBXBuildFile; fileRef = 00000000000000000000006C;};
+00000000000000000000006D = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/EventzQueryRange.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000D1 = {isa = PBXBuildFile; fileRef = 00000000000000000000006D;};
+00000000000000000000006E = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/ExternalService.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000D2 = {isa = PBXBuildFile; fileRef = 00000000000000000000006E;};
+00000000000000000000006F = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/LegacyGatewayHandoff.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000D3 = {isa = PBXBuildFile; fileRef = 00000000000000000000006F;};
+000000000000000000000070 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/NotesyService.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000D4 = {isa = PBXBuildFile; fileRef = 000000000000000000000070;};
+000000000000000000000071 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/PomeCameraHealth.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000D5 = {isa = PBXBuildFile; fileRef = 000000000000000000000071;};
+000000000000000000000072 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/PomeCameraPreview.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000D6 = {isa = PBXBuildFile; fileRef = 000000000000000000000072;};
+000000000000000000000073 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/PomeCameraService.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000D7 = {isa = PBXBuildFile; fileRef = 000000000000000000000073;};
+000000000000000000000074 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/ReminderzModule.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000D8 = {isa = PBXBuildFile; fileRef = 000000000000000000000074;};
+000000000000000000000075 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/SetupStep.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000D9 = {isa = PBXBuildFile; fileRef = 000000000000000000000075;};
+000000000000000000000076 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/Shared.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000DA = {isa = PBXBuildFile; fileRef = 000000000000000000000076;};
+000000000000000000000077 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "mac/StoreAgentConfiguration.swift"; sourceTree = SOURCE_ROOT;};
+0000000000000000000000DB = {isa = PBXBuildFile; fileRef = 000000000000000000000077;};
+00000000000000000000012C = {isa = PBXFileReference; lastKnownFileType = file; path = "Resources/ACKNOWLEDGMENTS.md"; sourceTree = SOURCE_ROOT;};
+000000000000000000000190 = {isa = PBXBuildFile; fileRef = 00000000000000000000012C;};
+00000000000000000000012D = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/Beepster"; sourceTree = SOURCE_ROOT;};
+000000000000000000000191 = {isa = PBXBuildFile; fileRef = 00000000000000000000012D;};
+00000000000000000000012E = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/EvenG2"; sourceTree = SOURCE_ROOT;};
+000000000000000000000192 = {isa = PBXBuildFile; fileRef = 00000000000000000000012E;};
+00000000000000000000012F = {isa = PBXFileReference; lastKnownFileType = file; path = "Resources/LICENSE.txt"; sourceTree = SOURCE_ROOT;};
+000000000000000000000193 = {isa = PBXBuildFile; fileRef = 00000000000000000000012F;};
+000000000000000000000130 = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/Notesy"; sourceTree = SOURCE_ROOT;};
+000000000000000000000194 = {isa = PBXBuildFile; fileRef = 000000000000000000000130;};
+000000000000000000000131 = {isa = PBXFileReference; lastKnownFileType = file; path = "Resources/Organik.icns"; sourceTree = SOURCE_ROOT;};
+000000000000000000000195 = {isa = PBXBuildFile; fileRef = 000000000000000000000131;};
+000000000000000000000132 = {isa = PBXFileReference; lastKnownFileType = file; path = "Resources/PRIVACY.md"; sourceTree = SOURCE_ROOT;};
+000000000000000000000196 = {isa = PBXBuildFile; fileRef = 000000000000000000000132;};
+000000000000000000000133 = {isa = PBXFileReference; lastKnownFileType = file; path = "Resources/PrivacyInfo.xcprivacy"; sourceTree = SOURCE_ROOT;};
+000000000000000000000197 = {isa = PBXBuildFile; fileRef = 000000000000000000000133;};
+000000000000000000000134 = {isa = PBXFileReference; lastKnownFileType = file; path = "Resources/Reminderz-LICENSE.txt"; sourceTree = SOURCE_ROOT;};
+000000000000000000000198 = {isa = PBXBuildFile; fileRef = 000000000000000000000134;};
+000000000000000000000135 = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/Speech"; sourceTree = SOURCE_ROOT;};
+000000000000000000000199 = {isa = PBXBuildFile; fileRef = 000000000000000000000135;};
+000000000000000000000136 = {isa = PBXFileReference; lastKnownFileType = file; path = "Resources/container-migration.plist"; sourceTree = SOURCE_ROOT;};
+00000000000000000000019A = {isa = PBXBuildFile; fileRef = 000000000000000000000136;};
+000000000000000000000009 = {isa = PBXFileReference; explicitFileType = wrapper.application; path = "Organik Apps Pebble Connector.app"; sourceTree = BUILT_PRODUCTS_DIR;};
+000000000000000000000001 = {isa = PBXProject; attributes = {LastUpgradeCheck = 2660;}; buildConfigurationList = 000000000000000000000002; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; knownRegions = (en,Base); mainGroup = 000000000000000000000003; productRefGroup = 000000000000000000000004; projectDirPath = ""; projectRoot = ""; targets = (000000000000000000000005);};
+000000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (000000000000000000000006,00000000000000000000000C); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug;};
+000000000000000000000003 = {isa = PBXGroup; children = (0000000000000000000003E8,000000000000000000000064,000000000000000000000065,000000000000000000000066,000000000000000000000067,000000000000000000000068,000000000000000000000069,00000000000000000000006A,00000000000000000000006B,00000000000000000000006C,00000000000000000000006D,00000000000000000000006E,00000000000000000000006F,000000000000000000000070,000000000000000000000071,000000000000000000000072,000000000000000000000073,000000000000000000000074,000000000000000000000075,000000000000000000000076,000000000000000000000077,00000000000000000000012C,00000000000000000000012D,00000000000000000000012E,00000000000000000000012F,000000000000000000000130,000000000000000000000131,000000000000000000000132,000000000000000000000133,000000000000000000000134,000000000000000000000135,000000000000000000000136,000000000000000000000004); sourceTree = "<group>";};
+000000000000000000000004 = {isa = PBXGroup; children = (000000000000000000000009); name = Products; sourceTree = "<group>";};
+000000000000000000000005 = {isa = PBXNativeTarget; buildConfigurationList = 000000000000000000000007; buildPhases = (00000000000000000000000A,00000000000000000000000B,0000000000000000000003EB); buildRules = (); dependencies = (0000000000000000000003EA); name = OrganikConnector; productName = "Organik Apps Pebble Connector"; productReference = 000000000000000000000009; productType = "com.apple.product-type.application";};
+000000000000000000000006 = {isa = XCBuildConfiguration; buildSettings = {SDKROOT = macosx; MACOSX_DEPLOYMENT_TARGET = 14.0; SWIFT_VERSION = 5.0; ALWAYS_SEARCH_USER_PATHS = NO;}; name = Debug;};
+000000000000000000000007 = {isa = XCConfigurationList; buildConfigurations = (000000000000000000000008,00000000000000000000000D); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug;};
+000000000000000000000008 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/mac/AppStore/Connector.entitlements"; DEVELOPMENT_TEAM = 4N9LJD597R; CODE_SIGN_IDENTITY = "Apple Development"; ENABLE_APP_SANDBOX = YES; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = "$(SRCROOT)/mac/Info.plist"; PRODUCT_BUNDLE_IDENTIFIER = org.organikapps.pebbleconnector; PRODUCT_NAME = "Organik Apps Pebble Connector"; EXECUTABLE_NAME = "organik-pebble-connector"; SWIFT_ACTIVE_COMPILATION_CONDITIONS = APP_STORE; SWIFT_VERSION = 5.0; CURRENT_PROJECT_VERSION = 97; MARKETING_VERSION = 1.0; VERSIONING_SYSTEM = apple-generic; ENABLE_USER_SCRIPT_SANDBOXING = NO;}; name = Debug;};
+00000000000000000000000D = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = "$(SRCROOT)/mac/AppStore/Connector.entitlements"; DEVELOPMENT_TEAM = 4N9LJD597R; CODE_SIGN_IDENTITY = "Apple Development"; ENABLE_APP_SANDBOX = YES; ENABLE_HARDENED_RUNTIME = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = "$(SRCROOT)/mac/Info.plist"; PRODUCT_BUNDLE_IDENTIFIER = org.organikapps.pebbleconnector; PRODUCT_NAME = "Organik Apps Pebble Connector"; EXECUTABLE_NAME = "organik-pebble-connector"; SWIFT_ACTIVE_COMPILATION_CONDITIONS = APP_STORE; SWIFT_VERSION = 5.0; CURRENT_PROJECT_VERSION = 97; MARKETING_VERSION = 1.0; VERSIONING_SYSTEM = apple-generic; ENABLE_USER_SCRIPT_SANDBOXING = NO; SWIFT_OPTIMIZATION_LEVEL = "-O"; SWIFT_COMPILATION_MODE = wholemodule; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; COPY_PHASE_STRIP = YES; STRIP_INSTALLED_PRODUCT = YES;}; name = Release;};
+00000000000000000000000C = {isa = XCBuildConfiguration; buildSettings = {SDKROOT = macosx; MACOSX_DEPLOYMENT_TARGET = 14.0; SWIFT_VERSION = 5.0; ALWAYS_SEARCH_USER_PATHS = NO;}; name = Release;};
+00000000000000000000000A = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (0000000000000000000000C8,0000000000000000000000C9,0000000000000000000000CA,0000000000000000000000CB,0000000000000000000000CC,0000000000000000000000CD,0000000000000000000000CE,0000000000000000000000CF,0000000000000000000000D0,0000000000000000000000D1,0000000000000000000000D2,0000000000000000000000D3,0000000000000000000000D4,0000000000000000000000D5,0000000000000000000000D6,0000000000000000000000D7,0000000000000000000000D8,0000000000000000000000D9,0000000000000000000000DA,0000000000000000000000DB); runOnlyForDeploymentPostprocessing = 0;};
+00000000000000000000000B = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (000000000000000000000190,000000000000000000000191,000000000000000000000192,000000000000000000000193,000000000000000000000194,000000000000000000000195,000000000000000000000196,000000000000000000000197,000000000000000000000198,000000000000000000000199,00000000000000000000019A); runOnlyForDeploymentPostprocessing = 0;};
+0000000000000000000003E8 = {isa = PBXFileReference; lastKnownFileType = wrapper.pb-project; path = camera/CameraProbe.xcodeproj; sourceTree = SOURCE_ROOT;};
+0000000000000000000003E9 = {isa = PBXContainerItemProxy; containerPortal = 0000000000000000000003E8; proxyType = 1; remoteGlobalIDString = A00000000000000000000005; remoteInfo = CameraProbe;};
+0000000000000000000003EA = {isa = PBXTargetDependency; targetProxy = 0000000000000000000003E9;};
+0000000000000000000003EB = {isa = PBXShellScriptBuildPhase; buildActionMask = 2147483647; files = (); inputPaths = (); outputPaths = (); runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/bash; shellScript = "bash \"$SRCROOT/scripts/embed-helpers.sh\"";};
+}; rootObject = 000000000000000000000001; }

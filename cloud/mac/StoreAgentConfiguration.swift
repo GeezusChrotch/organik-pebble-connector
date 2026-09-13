@@ -4,6 +4,7 @@ import Combine
 import Security
 import LocalAuthentication
 import Darwin
+import ImageIO
 
 final class StoreAgentConfiguration: ObservableObject {
     @Published var hermesURL = UserDefaults.standard.string(forKey: "store.hermes.bridgeURL") ?? ""
@@ -68,6 +69,46 @@ final class StoreAgentConfiguration: ObservableObject {
             UserDefaults.standard.set(bookmark, forKey: "store.attachments.bookmark")
             return true
         } catch { message = "Could not save attachments access: " + error.localizedDescription; return false }
+    }
+    // Decode only files inside the user's selected security-scoped folder.
+    // The child process receives pixels, never a broader filesystem grant.
+    func attachmentPreview(_ request: [String: Any]) -> [String: Any] {
+        lock.lock(); let selected = selectedAttachments; lock.unlock()
+        guard let path = request["path"] as? String else { return ["error":"Invalid attachment request.","code":"MEDIA_SCOPE"] }
+        let file = URL(fileURLWithPath: path).resolvingSymlinksInPath().standardizedFileURL
+        let root = selected?.resolvingSymlinksInPath().standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        let parent = file.deletingLastPathComponent()
+        let stagedByGateway = parent.deletingLastPathComponent() == temporary && parent.lastPathComponent.hasPrefix("beepster-preview-") && file.lastPathComponent == "source"
+        guard stagedByGateway || root.map({file.path.hasPrefix($0.path + "/")}) == true else { return ["error":"Attachment is outside the selected folder.", "code":"MEDIA_SCOPE"] }
+        do {
+            let handle = try FileHandle(forReadingFrom: file)
+            defer { try? handle.close() }
+            let data = try handle.read(upToCount: 20 * 1024 * 1024 + 1) ?? Data()
+            guard data.count <= 20 * 1024 * 1024, let source = CGImageSourceCreateWithData(data as CFData, nil) else { return ["error":"Unsupported or oversized attachment.", "code":"MEDIA_FORMAT"] }
+            let count = request["kind"] as? String == "gif" ? min(6, CGImageSourceGetCount(source)) : 1
+            var frames: [[String: Any]] = []
+            for index in 0..<count {
+                let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways:true, kCGImageSourceThumbnailMaxPixelSize:180, kCGImageSourceCreateThumbnailWithTransform:true]
+                guard let image = CGImageSourceCreateThumbnailAtIndex(source, index, options as CFDictionary) else { continue }
+                let width = image.width, height = image.height
+                guard width > 0, height > 0, width <= 180, height <= 180 else { continue }
+                var pixels = [UInt8](repeating:255, count:width*height*4)
+                let rendered = pixels.withUnsafeMutableBytes { raw -> Bool in
+                    guard let context = CGContext(data:raw.baseAddress, width:width, height:height, bitsPerComponent:8, bytesPerRow:width*4, space:CGColorSpaceCreateDeviceRGB(), bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+                    context.setFillColor(CGColor(gray:1,alpha:1)); context.fill(CGRect(x:0,y:0,width:width,height:height))
+                    context.draw(image,in:CGRect(x:0,y:0,width:width,height:height)); return true
+                }
+                if rendered { frames.append(["width":width,"height":height,"rgba":Data(pixels).base64EncodedString()]) }
+            }
+            return frames.isEmpty ? ["error":"Could not decode attachment.","code":"MEDIA_FORMAT"] : ["frames":frames]
+        } catch {
+            let failure = error as NSError
+            if (failure.domain == NSCocoaErrorDomain && [NSFileReadNoSuchFileError,NSFileNoSuchFileError].contains(failure.code)) || (failure.domain == NSPOSIXErrorDomain && failure.code == Int(ENOENT)) {
+                return ["error":"Photo unavailable in Beeper. Open it in Beeper or the original app.","code":"BEEPSTER_MEDIA_MISSING"]
+            }
+            return ["error":"macOS blocked the native Connector from reading this attachment.","code":"MEDIA_PERMISSION"]
+        }
     }
     deinit { activeScopes.forEach { $0.stopAccessingSecurityScopedResource() } }
     func chooseOpenClaw() -> Bool {

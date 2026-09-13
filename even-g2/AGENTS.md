@@ -9,3 +9,7 @@ In Even Hub, open the uploaded build, click its Private status badge, select Bet
 then Promote to Beta. Verify the Builds page identifies the new version as the
 published Beta build before reporting release success. Distinguish published,
 installed, and glasses-tested status.
+
+Josh clarified that this Beta is just for him and is exempt from the Connector
+Apple-approval publication hold. Continue beta updates; keep the full public
+store release on hold until Connector approval.
