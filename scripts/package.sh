@@ -4,10 +4,15 @@ project_dir=$(cd "$(dirname "$0")/.." && pwd)
 app=${ORGANIK_APP_DESTINATION:-"$project_dir/build/Organik Apps Pebble Connector.app"}
 test -x "$app/Contents/MacOS/organik-pebble-connector"
 distribution=$(/usr/libexec/PlistBuddy -c 'Print :OrganikDistribution' "$app/Contents/Info.plist")
-if [ "$distribution" != unified ] || [ -e "$app/Contents/Resources/PebClaw" ]; then
+if { [ "$distribution" != unified ] && [ "$distribution" != direct-download ]; } || [ -e "$app/Contents/Resources/PebClaw" ]; then
   echo 'Packaging refuses legacy, unmarked, or PebClaw-containing builds.' >&2
   exit 1
 fi
+if [ "$distribution" = direct-download ] && { [ -e "$app/Contents/Resources/Pome Cameras.app" ] || [ -e "$app/Contents/Resources/EvenG2/pome" ]; }; then
+  echo 'Direct download cannot contain the Pome helper or G2 payload.' >&2
+  exit 1
+fi
+python3 "$project_dir/scripts/check-bundle-executables.py" "$app"
 python3 "$project_dir/scripts/check-platform.py" "$app"
 python3 "$project_dir/scripts/check-private-data.py" --app "$app"
 codesign --verify --deep --strict "$app"
