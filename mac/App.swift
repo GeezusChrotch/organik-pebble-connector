@@ -53,9 +53,7 @@ import EventKit
         case (.beepster, "route"): beepster?.repairRoute()
         case (.beepster, "agent-hermes"), (.beepster, "agent-openclaw"): repairPanel = id
         case (.beepster, _): beepster?.repairService()
-        case (.eventz, "permission"):
-            if EKEventStore.authorizationStatus(for: .event) == .notDetermined { eventz?.setUpSync() }
-            else { openPrivacy("Calendars") }
+        case (.eventz, "permission"): eventz?.fixCalendarAccess()
         case (.reminderz, "permission"):
             if EKEventStore.authorizationStatus(for: .reminder) == .notDetermined { reminderz?.setUpSync() }
             else { openPrivacy("Reminders") }
@@ -80,6 +78,18 @@ import EventKit
     }
     private var refreshing = false
     func start() {
+        NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.eventz?.checkConnection()
+                    self?.reminderz?.checkConnection()
+                    self?.beepster?.checkConnection()
+                }
+            }.store(in: &subscriptions)
+        NotificationCenter.default.publisher(for: .EKEventStoreChanged)
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { self?.eventz?.checkConnection(); self?.reminderz?.checkConnection() }
+            }.store(in: &subscriptions)
         for notification in [NSWindow.didMiniaturizeNotification, NSWindow.didDeminiaturizeNotification, NSWindow.willCloseNotification, NSWindow.didBecomeMainNotification, NSWindow.didResignMainNotification] {
             NotificationCenter.default.publisher(for: notification).sink { [weak self] _ in
                 DispatchQueue.main.async { self?.scheduleStatusSnapshot() }
