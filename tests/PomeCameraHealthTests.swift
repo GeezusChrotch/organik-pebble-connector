@@ -16,6 +16,11 @@ import Foundation
   assert(PomeHomeHealth([:], status:503).detail.contains("loading"))
   assert(PomeHomeHealth([:], status:404).detail.contains("updated Connector"))
   assert(PomeHomeHealth(home, status:200).ready && !PomeCameraHealth(paused).running)
+  assert(PomeHomeHealth(home, status:200).repair == .none)
+  assert(PomeHomeHealth([:], status:403).repair == .permission)
+  assert(PomeHomeHealth([:], status:503).repair == .retryHome)
+  for status in [401,0,500] { assert(PomeHomeHealth([:], status:status).repair == .reconnect) }
+  for status in [404,200] { assert(PomeHomeHealth([:], status:status).repair == .updateHelper) }
   print("PASS: camera health rejects wrong service/protocol and reports permission, pause and empty camera states")
  }
 }

@@ -12,11 +12,19 @@ struct PomeCameraHealth {
 }
 
 
+enum PomeHomeRepair { case none, permission, reconnect, retryHome, updateHelper }
+
 struct PomeHomeHealth {
+    let repair: PomeHomeRepair
     let ready: Bool
     let detail: String
     init(_ value: [String: Any], status: Int) {
         ready = status == 200 && value["backend"] as? String == "homekit" && value["protocol"] as? Int == 1 && (value["homes"] as? Int ?? 0) > 0
+        if ready { repair = .none }
+        else if status == 403 { repair = .permission }
+        else if status == 503 { repair = .retryHome }
+        else if status == 404 || status == 200 { repair = .updateHelper }
+        else { repair = .reconnect }
         if ready { detail = "Apple Home is ready." }
         else if status == 403 { detail = "Allow Home access, then check again." }
         else if status == 503 { detail = "Apple Home is loading or no homes are available. Check your homes in Apple Home, then retry." }

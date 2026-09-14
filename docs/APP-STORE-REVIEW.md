@@ -68,3 +68,9 @@ The artifact checks for build 58 passed. Those results cannot close the findings
 | Build 57 upload 90261 | Audit every nested declared executable before signing/export and again in the downloaded artifact. Keep the narrow resource-bundle regression tests. |
 
 Do not push a documentation-only change to the release branch merely to trigger another Cloud build. Keep runtime fixes and their release evidence together when preparing the next candidate.
+
+## Build 110 Home repair assessment (2026-09-13)
+
+User action: Fix beside Home access or Apple Home. The Connector reloads the existing helper credential and checks the authenticated local Home status. Denied access invokes the existing helper Home connection request and, if still denied, opens HomeKit privacy settings. Loading/no-home status restarts only the owned helper to recreate its HomeKit manager, retaining stored credentials and schedules. Continued no-home status explains the account/home check and offers Apple Home explicitly. Other failures retain specific service/update guidance. Returning to Connector triggers a background check.
+
+No new permission, entitlement, endpoint, data field, recipient, retention, download, or third-party sharing is introduced. Existing Home metadata stays in the established local helper/private paired-device flow. The Apple Privacy HIG reference was rechecked for this repair; system permission UI remains the decision surface. Repair classification tests and both edition compilations pass; live denied/loading repair flows and physical-device acceptance remain pending. Healthy startup alone does not close those checks.

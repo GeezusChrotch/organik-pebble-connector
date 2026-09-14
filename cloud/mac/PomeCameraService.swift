@@ -65,6 +65,74 @@ import LocalAuthentication
             if health.valid && !health.home { control("home") }
         }
     }
+    @Published private(set) var repairingHome = false
+    func repairHome() {
+        guard ConnectorDistribution.pomeAvailable, !repairingHome else { return }
+        repairingHome = true
+        Task {
+            defer { repairingHome = false }
+            // Reload the helper-owned credential before choosing a repair. A stale
+            // status must not send the user to unrelated system settings.
+            if !(await connectLocalCameraService()) {
+                start()
+                await launchTask?.value
+            }
+            guard health.valid else {
+                showHomeRepair("Pome connection unavailable", "The bundled Pome service could not connect. " + message)
+                return
+            }
+            if homeHealth.ready { return }
+            if homeHealth.repair == .retryHome {
+                // The helper's /service/home only creates a manager once. Reload
+                // that owned helper to obtain a fresh HomeKit manager, retaining
+                // its persisted credentials and camera schedules.
+                shutdown()
+                for _ in 0..<20 {
+                    let helper = Bundle.main.resourceURL?.appendingPathComponent("Pome Cameras.app").standardizedFileURL
+                    if !NSRunningApplication.runningApplications(withBundleIdentifier: "com.organikapps.pome.camera-probe").contains(where: { $0.bundleURL?.standardizedFileURL == helper }) { break }
+                    try? await Task.sleep(nanoseconds: 200_000_000)
+                }
+                start()
+                await launchTask?.value
+            }
+            if homeHealth.repair == .permission || homeHealth.repair == .retryHome {
+                do {
+                    _ = try await jsonRequest(URL(string: target + "/service/home")!, token: token(), body: [:])
+                } catch {
+                    showHomeRepair("Could not reconnect Apple Home", error.localizedDescription)
+                    return
+                }
+                // Permission prompts and HomeKit loading complete asynchronously.
+                // Only this repair is pending; unrelated controls remain available.
+                for _ in 0..<20 {
+                    await check()
+                    if homeHealth.ready { return }
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                }
+            }
+            switch homeHealth.repair {
+            case .none: return
+            case .permission:
+                message = "Allow Pome Cameras in System Settings → Privacy & Security → HomeKit. Connector will recheck when you return."
+                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_HomeKit")!)
+            case .retryHome:
+                showHomeRepair("Apple Home has not supplied a home", "Pome has Home access, but HomeKit still reports no available homes after reconnecting. In Apple Home, verify that this Mac is signed into the Apple Account that owns or shares your home. Connector will recheck when you return.", offerHome: true)
+            case .updateHelper:
+                showHomeRepair("Pome helper needs an update", homeHealth.detail + " Reinstall the latest Pome-enabled Connector to replace the bundled helper.")
+            case .reconnect:
+                showHomeRepair("Pome connection unavailable", homeHealth.detail)
+            }
+        }
+    }
+    private func showHomeRepair(_ title: String, _ detail: String, offerHome: Bool = false) {
+        message = detail
+        let alert = NSAlert(); alert.messageText = title; alert.informativeText = detail
+        alert.addButton(withTitle: offerHome ? "Open Apple Home" : "OK")
+        if offerHome { alert.addButton(withTitle: "Close") }
+        if alert.runModal() == .alertFirstButtonReturn && offerHome {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Home.app"))
+        }
+    }
     func prepareToQuit() async {
         quitting = true
         await launchTask?.value
@@ -302,7 +370,7 @@ import LocalAuthentication
     var homeRequirements: [ConnectorRequirement] {
         [ConnectorRequirement("service", "Pome service", health.valid, "Choose Connect Apple Home to start the built-in service."),
          ConnectorRequirement("home-permission", "Home access", health.home, "Choose Connect Apple Home and allow access when macOS asks."),
-         ConnectorRequirement("home-ready", "Apple Home", homeHealth.ready, homeHealth.detail),
+         ConnectorRequirement("home-ready", "Apple Home", homeHealth.ready, homeHealth.detail, checking: repairingHome),
          ConnectorRequirement("route", "Private connection", privateReady, "Connect Tailscale on Mac and phone, then start the private connection.")]
     }
     var requirements: [ConnectorRequirement] {

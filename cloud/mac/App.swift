@@ -62,8 +62,7 @@ import EventKit
         case (.eventz, _): eventz?.setUpSync()
         case (.reminderz, _): reminderz?.setUpSync()
         case (.pome, "route"): cameras.startPrivateConnection()
-        case (.pome, "home-permission"): openPrivacy("HomeKit")
-        case (.pome, "home-ready"): NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Home.app"))
+        case (.pome, "home-permission"), (.pome, "home-ready"): cameras.repairHome()
         case (.pome, "service"): cameras.setUpHome()
         case (.pome, "camera-running"): cameras.control("start")
         case (.pome, "camera-capture"): NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Software-Update-Settings.extension")!)
@@ -84,6 +83,7 @@ import EventKit
                     self?.eventz?.checkConnection()
                     self?.reminderz?.checkConnection()
                     self?.beepster?.checkConnection()
+                    Task { await self?.cameras.check() }
                 }
             }.store(in: &subscriptions)
         NotificationCenter.default.publisher(for: .EKEventStoreChanged)
