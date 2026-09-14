@@ -116,20 +116,27 @@ export class MacContactsResolver {
     if (!missing.length) return { names, contactKeys };
     try {
       if (this.runner === runHelper) await access(this.helperPath, constants.X_OK);
-      const result = await this.runner(this.helperPath, missing);
-      const resolvedNames = result?.authorized && result.names && typeof result.names === 'object' ? result.names : {};
-      const resolvedKeys = result?.authorized && result.contactKeys && typeof result.contactKeys === 'object' ? result.contactKeys : {};
-      for (const identifier of missing) {
-        const name = String(resolvedNames[identifier] || '').trim();
-        const contactKey = String(resolvedKeys[identifier] || '').trim();
-        this.cache.delete(identifier);
-        this.cache.set(identifier, {
-          name,
-          contactKey,
-          expiresAt: now + (name ? POSITIVE_CACHE_MS : NEGATIVE_CACHE_MS)
-        });
-        if (name) names.set(identifier, name);
-        if (contactKey) contactKeys.set(identifier, contactKey);
+      // Keep helper payloads bounded for large G2 inboxes. One unavailable
+      // batch must not poison the negative cache or discard successful batches.
+      for (let offset = 0; offset < missing.length; offset += 100) {
+        const batch = missing.slice(offset, offset + 100);
+        let result;
+        try { result = await this.runner(this.helperPath, batch); } catch { continue; }
+        if (!result?.authorized || result.errorDomain || result.errorCode) continue;
+        const resolvedNames = result?.authorized && result.names && typeof result.names === 'object' ? result.names : {};
+        const resolvedKeys = result?.authorized && result.contactKeys && typeof result.contactKeys === 'object' ? result.contactKeys : {};
+        for (const identifier of batch) {
+          const name = String(resolvedNames[identifier] || '').trim();
+          const contactKey = String(resolvedKeys[identifier] || '').trim();
+          this.cache.delete(identifier);
+          this.cache.set(identifier, {
+            name,
+            contactKey,
+            expiresAt: now + (name ? POSITIVE_CACHE_MS : NEGATIVE_CACHE_MS)
+          });
+          if (name) names.set(identifier, name);
+          if (contactKey) contactKeys.set(identifier, contactKey);
+        }
       }
       while (this.cache.size > MAX_CACHE_ENTRIES) this.cache.delete(this.cache.keys().next().value);
     } catch {

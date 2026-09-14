@@ -12,6 +12,9 @@ resources="$app/Contents/Resources"
 # Use the explicitly staged G2 candidate, not assets inherited from the installed app.
 rm -rf "$resources/EvenG2/beepster/dist"
 ditto "$root/cloud/Resources/EvenG2/beepster/dist" "$resources/EvenG2/beepster/dist"
+for source in beeper-client.js contact-resolver.js; do
+ cp "$root/cloud/Resources/Beepster/gateway/src/$source" "$resources/Beepster/gateway/src/$source"
+done
 rm -rf "$resources/Pome Cameras.app" "$resources/EvenG2/pome"
 python3 - "$root/even-g2/server.mjs" "$resources/EvenG2/server.mjs" <<'PYPOME'
 from pathlib import Path

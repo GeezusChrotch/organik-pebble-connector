@@ -70,7 +70,7 @@ function needsContactEnrichment(chat, contacts = []) {
     !readableDisplayName(resolveChatName(chat, contacts));
   if (chat?.type !== 'single') return false;
   const participant = chat?.participants?.items?.find((item) => !item.isSelf);
-  if (participant?.fullName?.trim()) return false;
+  if (readableDisplayName(participant?.fullName)) return false;
   const current = resolveChatName(chat, contacts);
   return current === 'Unknown contact' || current === chat?.title || !readableDisplayName(current);
 }
@@ -370,6 +370,9 @@ export class BeeperClient {
       localContactKeys = new Map();
     }
     for (const [identifier, name] of localNames) this.localContactNames.set(identifier, name);
+    // Message hydration resolves the same exact identities. A partial/current
+    // helper result must not erase names already known to this process.
+    localNames = new Map([...this.localContactNames, ...localNames]);
     const items = (result.items || []).map((chat) => {
       const contacts = contactsByAccount.get(chat.accountID) || this.accountContacts.get(chat.accountID) || [];
       const name = normalizeEmojiForPebble(resolveChatName(chat, contacts, localNames));
