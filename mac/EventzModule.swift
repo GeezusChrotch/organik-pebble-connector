@@ -25,12 +25,14 @@ private struct PairingCode {
 
 private final class EventServer {
     private let store: EKEventStore
+    private let canRead: () -> Bool
     private let token: String
     private let queue = DispatchQueue(label: "org.eventz.http")
     private var listener: NWListener?
     private var pairingCodes: [String: PairingCode] = [:]
 
-    init(store: EKEventStore, token: String) {
+    init(store: EKEventStore, token: String, canRead: @escaping () -> Bool) {
+        self.canRead = canRead
         self.store = store
         self.token = token
     }
@@ -187,12 +189,12 @@ private final class EventServer {
         }
         guard request.method == "GET" else { completion(405, ["error": "Eventz is read only"]); return }
         let path = requestPath(request.path)
-        let allowed = EKEventStore.authorizationStatus(for: .event) == .fullAccess
-        if path == "/v1/health" {
-            completion(200, ["ok": true, "service": "Eventz", "calendars": allowed, "apiVersion": 2]); return
-        }
-        guard allowed else { completion(503, ["error": "Allow Calendars access in the Connector"]); return }
         DispatchQueue.main.async {
+            let allowed = self.canRead()
+            if path == "/v1/health" {
+                completion(200, ["ok": true, "service": "Eventz", "calendars": allowed, "apiVersion": 2]); return
+            }
+            guard allowed else { completion(503, ["error": "Allow Calendars access in the Connector"]); return }
             let calendars = self.store.calendars(for: .event).sorted {
                 $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending
             }
@@ -293,11 +295,20 @@ final class EventzModule: NSObject, NSWindowDelegate, ObservableObject {
         if updateCalendarPermission() { return }
         requestCalendars()
     }
-    @discardableResult private func updateCalendarPermission() -> Bool {
-        let allowed = EKEventStore.authorizationStatus(for: .event) == .fullAccess
-        let detail = allowed ? "Calendars access allowed." : "Calendar access is not available to the running Connector. Fix rechecks access and opens Calendar privacy settings if needed."
+    private var permissionRequestPending = false
+    private var calendarPermissionError: String?
+    private var permissionRecovery: Task<Void, Never>?
+    private lazy var calendarAccess = CalendarAccessMonitor(
+        authorization: { EKEventStore.authorizationStatus(for: .event) == .fullAccess },
+        resetStore: { [unowned self] in self.store.reset() },
+        readCalendarCount: { [unowned self] in self.store.calendars(for: .event).count })
+    @discardableResult private func updateCalendarPermission(afterGrant: Bool = false) -> Bool {
+        let result = calendarAccess.check(afterGrant: afterGrant)
+        let allowed = result.authorized
+        if allowed { calendarPermissionError = nil }
+        let detail = allowed ? "Calendar access allowed · \(result.calendarCount ?? 0) calendars available." : permissionRequestPending ? "Waiting for macOS to apply Calendar access…" : (calendarPermissionError ?? "Allow Full Access in Calendar privacy settings. Fix rechecks the permission and calendar connection.")
         if let index = requirements.firstIndex(where: { $0.id == "permission" }) {
-            requirements[index] = ConnectorRequirement("permission", "Calendars access", allowed, detail)
+            requirements[index] = ConnectorRequirement("permission", "Calendars access", allowed, detail, checking: permissionRequestPending && !allowed)
         }
         return allowed
     }
@@ -369,7 +380,7 @@ final class EventzModule: NSObject, NSWindowDelegate, ObservableObject {
         guard !token.isEmpty else { return }
         serviceBusy = true
         updateServiceButtons()
-        server = EventServer(store: store, token: token)
+        server = EventServer(store: store, token: token, canRead: { [weak self] in self?.updateCalendarPermission() ?? false })
         server.start { [weak self] result in
             guard let self else { return }
             self.serviceBusy = false
@@ -525,19 +536,40 @@ final class EventzModule: NSObject, NSWindowDelegate, ObservableObject {
     }
 
     @objc private func requestCalendars() {
+        guard !permissionRequestPending else { return }
+        permissionRequestPending = true
+        calendarPermissionError = nil
+        updateCalendarPermission()
         store.requestFullAccessToEvents { [weak self] granted, error in
             DispatchQueue.main.async {
                 guard let self else { return }
-                self.updateCalendarPermission()
-                self.refresh()
-                if !granted {
-                    let detail = error?.localizedDescription ??
-                        "Open System Settings → Privacy & Security → Calendars and allow Organik Apps Pebble Connector."
-                    self.message = detail
+                if granted {
+                    // EventKit may retain a pre-grant cache. Do not restart the app,
+                    // replace pairing, or reset TCC to recover access.
+                    self.updateCalendarPermission(afterGrant: true)
+                    self.permissionRecovery?.cancel()
+                    self.permissionRecovery = Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        for _ in 0..<30 {
+                            if self.updateCalendarPermission() { break }
+                            try? await Task.sleep(nanoseconds: 200_000_000)
+                            if Task.isCancelled { return }
+                        }
+                        self.permissionRequestPending = false
+                        let ready = self.updateCalendarPermission()
+                        if !ready { self.calendarPermissionError = "macOS accepted the request but Calendar access is not available yet. Fix will retry the connection." }
+                        self.updateCalendarPermission()
+                        self.refresh()
+                    }
+                } else {
+                    self.permissionRequestPending = false
+                    self.updateCalendarPermission()
+                    self.calendarPermissionError = error?.localizedDescription ?? "Calendar access was not granted. Enable Full Access for Organik Apps Connector in Calendar privacy settings."
+                    self.updateCalendarPermission()
                     if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars") {
                         NSWorkspace.shared.open(url)
                     }
-                    self.showAlert("Calendar access still needs attention", detail + " If Full Access is already on, quit and reopen Connector so macOS can apply the changed permission.")
+                    self.refresh()
                 }
             }
         }
@@ -630,7 +662,7 @@ final class EventzModule: NSObject, NSWindowDelegate, ObservableObject {
                 guard !self.serviceBusy, canRun == (!self.serviceStopped && !self.token.isEmpty) else { return }
                 let allowed = self.updateCalendarPermission()
                 self.requirements = [
-                    ConnectorRequirement("permission", "Calendars access", allowed, allowed ? "Calendars access allowed." : "Allow Calendars access in System Settings → Privacy & Security → Calendars."),
+                    self.requirements.first { $0.id == "permission" } ?? ConnectorRequirement("permission", "Calendars access", allowed, "Check Calendar access."),
                     ConnectorRequirement("service", "Mac service", local, local ? "Service running." : "Start the service. Check whether another service is using port 7848."),
                     ConnectorRequirement("route", "Private connection", privateOK, privateResult.detail)]
                 self.updateServiceButtons()
