@@ -14,6 +14,9 @@ struct ConnectorScrollView<Content: View>: View {
                     .frame(maxWidth: .infinity, alignment: .topLeading)
             }
         }
+        // Clip at the detail viewport, including its top safe-area boundary.
+        // Scrolled content must never paint behind the window toolbar.
+        .clipped()
         }
     }
 }

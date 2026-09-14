@@ -41,6 +41,8 @@ struct ConnectorWindow: View {
         }
         .frame(minWidth: 820, minHeight: 620)
         .toolbar { deviceToolbar }
+        .toolbarBackground(Color(nsColor: .windowBackgroundColor), for: .windowToolbar)
+        .toolbarBackground(.visible, for: .windowToolbar)
 
         .environmentObject(model)
         .sheet(isPresented: Binding(get: { model.repairPanel != nil }, set: { if !$0 { model.repairPanel = nil } })) {
