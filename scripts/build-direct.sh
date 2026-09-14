@@ -10,8 +10,13 @@ mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks" "$root/build"
 ditto "$baseline/Contents/Resources" "$app/Contents/Resources"
 resources="$app/Contents/Resources"
 # Use the explicitly staged G2 candidate, not assets inherited from the installed app.
-rm -rf "$resources/EvenG2/beepster/dist"
-ditto "$root/cloud/Resources/EvenG2/beepster/dist" "$resources/EvenG2/beepster/dist"
+for client in beepster dayframe; do
+ rm -rf "$resources/EvenG2/$client/dist"
+ ditto "$root/cloud/Resources/EvenG2/$client/dist" "$resources/EvenG2/$client/dist"
+done
+for proxy in beepster-proxy.mjs dayframe-proxy.mjs local-speech.mjs; do
+ cp "$root/cloud/Resources/EvenG2/$proxy" "$resources/EvenG2/$proxy"
+done
 for source in beeper-client.js contact-resolver.js; do
  cp "$root/cloud/Resources/Beepster/gateway/src/$source" "$resources/Beepster/gateway/src/$source"
 done
@@ -26,7 +31,7 @@ PYPOME
 cp "$root/mac/Info.plist" "$app/Contents/Info.plist"
 python3 - "$app" <<'PY'
 import sys,plistlib,pathlib
-p=pathlib.Path(sys.argv[1])/'Contents/Info.plist';d=plistlib.loads(p.read_bytes());d['NotesyPackageVersion']='1.4.8';d.update(CFBundleShortVersionString='1.0.0',CFBundleVersion='111',OrganikUpgradeModel='owned-v1',SUEnableInstallerLauncherService=True,OrganikDistribution='direct-download',OrganikPomeAvailable=False)
+p=pathlib.Path(sys.argv[1])/'Contents/Info.plist';d=plistlib.loads(p.read_bytes());d['NotesyPackageVersion']='1.4.8';d.update(CFBundleShortVersionString='1.0.0',CFBundleVersion='112',OrganikUpgradeModel='owned-v1',SUEnableInstallerLauncherService=True,OrganikDistribution='direct-download',OrganikPomeAvailable=False)
 for k in ['OrganikCameraAppGroup','OrganikLocalCameraPreview','NSHomeKitUsageDescription']:d.pop(k,None)
 p.write_bytes(plistlib.dumps(d))
 PY

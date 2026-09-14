@@ -1,6 +1,6 @@
 # Shared Connector readiness work
 
-Josh authorized the final latest Store submission and release on 2026-09-13. Exact-candidate validation still applies; additional Connector-dependent development requires explicit approval under AGENTS.md.
+Josh authorized the final latest Store submission and release on 2026-09-13. Exact-candidate validation still applies; Josh lifted the Connector development freeze; normal task authorization applies.
 Store submission 97 remains unchanged until the coordinator replaces it. GitHub build 106 is the latest installed build at the start of the authorized switch to Pome-enabled local build 107.
 
 ## Interface
