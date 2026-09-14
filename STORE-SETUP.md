@@ -1,6 +1,6 @@
 # Organik Apps Pebble Connector 1.0 — Mac App Store setup
 
-**Prerelease guide. The App Store version is not publicly available yet.** This guide describes the next Store candidate with direct HomeKit Pome; it includes the build 97 Apple-review fixes and latest Pome G2 support. The older DMG release has different update and background-service behavior.
+**Prerelease guide. The App Store version is not publicly available yet.** This guide describes Store build 112 with direct HomeKit Pome and the latest shared UI, permission recovery and contact-name fixes. The current GitHub 1.0.0 release excludes Pome; both editions use app-owned services.
 
 ## Before you start
 
@@ -92,6 +92,10 @@ This candidate includes Pome Apple Home controls and cameras. The separate direc
 
 ## Even G2 review packages
 
-The exact companion packages bundled with this candidate are [Pome0.1.33](cloud/Resources/EvenG2/pome/dist/pome-0.1.33.ehpk), [Beepster0.1.18](cloud/Resources/EvenG2/beepster/dist/beepster-0.1.18.ehpk), and [DayFrame0.1.10](cloud/Resources/EvenG2/dayframe/dist/dayframe-0.1.10.ehpk). View this guide at the frozen Store97 commit to keep these links tied to the submitted source.
+Store build 112 bundles the runtime web assets for Beepster 0.1.21 and DayFrame 0.1.10, plus Pome. Downloadable EvenHub packages are not embedded in these runtime asset folders.
 
-These are companion packages for compatible glasses and the Even phone app. Their personal Beta publication does not make them publicly installable for every account. Review access must include an actual supported installation arrangement; downloading a package alone does not grant Beta access. The Connector can be set up on the Mac without wearable hardware, but end-to-end wearable features require that hardware.
+Beepster 0.1.21 and DayFrame 0.1.10 have been tested on the glasses and are being submitted for public availability through the Even phone app. Until public review completes, installation requires membership in their existing Even Hub Beta groups. Developer dashboard URLs are not public install links. Pome remains restricted Beta and is not included in this public G2 release.
+
+Apple reviewers need an actual supported companion installation arrangement and compatible glasses for end-to-end wearable tests. Beta access must be arranged for the review account; this guide does not grant membership. The Mac can be configured without glasses. Refer to the submission's review notes for the current access arrangement and availability.
+
+The compatible GitHub Connector is available at [Organik Apps Connector 1.0.0](https://github.com/GeezusChrotch/organik-pebble-connector/releases/tag/v1.0.0). It includes Beepster and DayFrame, but Apple Home testing requires the Pome-enabled Store candidate. Runtime source for Store build 112 is `3d8eeccd94c6b40ed401542a4e0303f421cbdae2`; this corrected guide is maintained separately from that immutable build.
