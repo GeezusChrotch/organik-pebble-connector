@@ -1,31 +1,48 @@
-# Organik Apps Pebble Connector
+# Organik Apps Connector
 
-One Mac app connects Notesy, Beepster, Reminderz, and Pome to your Pebble through your phone. Choose an app in the sidebar, follow its numbered setup, and use Overview to check connections. Optional features and troubleshooting are separate from the main setup.
+The Mac connection for supported Organik apps on Pebble, Even G2 and Apple Watch.
 
-**The next Mac App Store release is in preparation and is not publicly available yet.** The source on this branch includes the accepted direct HomeKit Pome backend and simplified setup. The older GitHub DMG release does not include this complete Store setup. Do not use its version number as proof of direct HomeKit support.
+**Upcoming GitHub edition: 1.0.1 (not yet published). Requires macOS 14 or later, on Apple silicon or Intel. Pome is not included.** The separate App Store edition retains Pome and Apple Home support; its availability is announced separately.
 
-## Setup
+[Download and release notes](https://github.com/GeezusChrotch/organik-pebble-connector/releases/latest) · [Website and setup](https://organikapps.com/connector/) · [Privacy](PRIVACY.md)
 
-Use macOS 14 or newer. Cameras require macOS 15.2 or newer. Install Tailscale on Mac and phone and connect both to the same account. Install the watch apps separately in the Pebble phone app.
+Companion apps are installed separately. Availability varies by app and platform; a Connector entry does not mean its companion app has been publicly released. Pingsquatch was previously called Beepster, Calendry was DayFrame/Eventz, and Remindery was Reminderz. Existing technical identifiers and saved pairing are retained.
 
-Each app has three main steps:
+The instructions below describe the upcoming 1.0.1 release. The existing public download remains 1.0.0; some controls described here are newer.
 
-1. **Connect its data source.** Notesy uses the Obsidian vault folder you choose and starts automatically. Beepster’s guided setup connects Beeper Desktop and requests Contacts access for names. Reminderz requests Apple Reminders access and starts sync. Pome connects directly to Apple Home through the bundled helper.
-2. **Connect privately.** Start the private Tailscale connection so your phone can reach this Mac away from home. Existing matching routes are reused.
-3. **Pair your phone.** Follow Connect phone for Notesy, Beepster, or Reminderz. For Pome, copy its URL and token into Pebble → Pome → Settings → Setup; home controls and cameras share that connection.
+## Set up in three steps
 
-Pome requires no Itsyhome installation or external home-control server. Set up your home in Apple Home on this Mac first. Optional cameras, Beepster attachment access, and Hermes/OpenClaw links have their own setup sections. Agent setup is separate for each agent and uses only its Telegram sessions.
+1. **Install on your Mac.** Open the DMG and drag Organik Apps Pebble Connector to Applications. Open that copy. The filename retains its original name for update compatibility; the window is titled Organik Apps Connector.
+2. **Connect your Mac and phone privately.** Install and sign in to Tailscale on both using the same private network. Keep the Mac awake, online and running Connector whenever you use the connected features. No public port forwarding or Tailscale Funnel is needed.
+3. **Choose your device and app.** Use the Pebble, Even G2 or Apple Watch button, then select an app in the sidebar. Follow its numbered setup steps. Choose Connect phone (or the app-specific iPhone connection button) for QR/code pairing, then finish setup in the companion phone app. You do not need Universal Clipboard: open the pairing page on the phone and copy the details there. Treat pairing details like a password.
 
-See the [complete Store setup guide](STORE-SETUP.md), [optional-agent guide](agents/README.md), and [privacy policy](PRIVACY.md).
+## What each connection needs
 
-## Daily use
+- **Notesy:** select the local Markdown/Obsidian vault you want to use. Connector needs access to that folder; it does not require your whole disk.
+- **Pingsquatch:** connect Beeper and its local API as shown in setup. Contacts access is optional for matching names. Messages attachments need the folder access shown in setup and may require macOS privacy approval. Hermes and OpenClaw links are optional and have separate setup.
+- **Remindery:** allow Apple Reminders access to read and update your lists.
+- **Calendry:** allow Calendar access to read events. It does not edit your calendars.
+- **Even G2:** start the G2 connection, pair your phone and install the desired glasses app separately. Optional dictation has its own speech setup; local model downloads require your choice, and a custom provider has its own privacy and usage terms.
+- **Apple Watch:** use the supported iPhone companion and its watch app. Connector supplies their private Mac connection; installing Connector does not install the iPhone or watch app.
 
-Keep the Mac awake and Tailscale connected on both devices. Closing Connector’s window keeps its services running; quitting stops the owned services. Pome home controls continue when camera capture is paused. Settings can hide unused connectors, run Connector in the menu bar without a Dock icon, and enable start at login. Tesla is hidden by default and marked Coming soon.
+Pome controls, cameras and pairing are unavailable in this GitHub edition. Tesla is an unreleased personal integration, hidden by default.
 
-Green lights verify the Mac connections. Use the watch to verify the complete phone/watch path. A red light opens the affected app’s setup through Fix. Background checks leave setup controls available.
+## Status and fixes
 
-## Building and release status
+Overview shows a shared Tailscale check and app-specific requirements. When a check is red, use its adjacent **Fix** action and follow the permission request, folder chooser or service repair it opens. If it stays red after approval, return to Connector and recheck; read the specific error before changing other settings.
 
-The [self-contained Xcode Cloud project](cloud/README.md) builds the Store app using a supported stable host and Apple-managed signing. [Accepted source hashes](cloud/ACCEPTED-SOURCE.json) pin the native and HomeKit source used by the tested development build. A Store archive has different build/signing metadata and must pass its own validation and review.
+If your phone cannot connect, check Tailscale on **both** devices, confirm the Mac is awake, and verify that the app's service is running. Repeat phone pairing if its saved connection is stale. Hiding an app in Settings does not stop its service or remove its permissions.
 
-Developer build instructions for the older direct-distribution path remain in [BUILDING.md](BUILDING.md). Installing a development candidate, watch acceptance, App Store approval, and public release are separate steps. Historical tags retain older releases and documentation.
+For help, email [organikapps@icloud.com](mailto:organikapps@icloud.com) with the Connector version, platform, app name and exact error. Never send pairing codes, tokens, private messages or camera images.
+
+## Updates and background operation
+
+In Settings you can check for updates, set automatic checks from 1 to 168 hours, start at login, use the menu bar, hide the Dock icon and hide unused connectors. Closing the window keeps enabled services running; use Quit to exit Connector. The GitHub edition uses signed updates from GitHub. The App Store edition uses Apple's update system.
+
+## Upgrade or change editions
+
+1. Quit Connector before replacing the app in Applications. Keep one installed/running copy.
+2. Preserve app data and Keychain entries. Do not use an uninstaller that deletes settings, and do not run a separate legacy connector alongside it.
+3. Open the replacement and review its checks. macOS may ask for permissions again when the signing identity changes between GitHub and App Store editions. Re-select a folder or approve access when requested; this transition is not guaranteed to be prompt-free.
+
+Saved pairing and settings are intended to be reused. If a service or permission needs attention, use its specific Fix action. Moving to GitHub removes access to Pome features; it does not make HomeKit available outside the Store edition.

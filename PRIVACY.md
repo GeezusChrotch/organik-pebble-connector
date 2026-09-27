@@ -42,11 +42,13 @@ Beepster link labels and Hide links are display preferences. Descriptive labels 
 
 ## Beepster attachments and thumbnails
 
-In the Mac App Store build, you explicitly select the Messages Attachments folder. Connector remembers a read-only security-scoped bookmark and passes access to its owned gateway. macOS privacy protections can still require additional consent. The DMG build uses its managed service and may require Full Disk Access. The status probe only opens and closes the local attachment directory; it does not enumerate messages or read attachment contents. Preview requests read the selected attachment and convert it locally. GIF previews use a bounded decoder.
+In the Mac App Store build, you explicitly select the Messages Attachments folder. Connector remembers a read-only security-scoped bookmark and passes access to its owned gateway. macOS privacy protections can still require additional consent. The DMG build uses its managed service and may require Full Disk Access. The status probe only opens and closes the local attachment directory; it does not enumerate messages or read attachment contents. Preview requests read the selected attachment and convert it locally. GIF previews use a bounded decoder. Apple Watch attachment requests also read the selected file through this same authorization, in bounded chunks up to 20 MB, and send it only through the authenticated gateway to the paired iPhone and Watch. Store builds perform these reads in Connector, which owns the read-only folder bookmark; the gateway child receives bytes, not additional filesystem access. Original attachments are held in a bounded, expiring memory cache and are never uploaded to an Organik service. Denied or revoked access fails without expanding the authorized folder.
 
 For recognized YouTube links, Beepster may request a thumbnail directly from YouTube’s image host (i.ytimg.com). That host receives the video ID and normal request information, including your IP address; Beepster does not send message bodies or Beeper credentials. Reaction names come from the configured Beeper connection.
 
-## Pome cameras
+## Pome cameras (App Store edition only)
+
+Pome controls and cameras are unavailable in the GitHub edition.
 
 Cameras are optional and require Home access. The bundled helper discovers the cameras available to your Apple Home account. Scheduled captures request HomeKit snapshots. A manual capture can briefly open a muted HomeKit camera stream and capture the helper's own offscreen camera-rendering surface to obtain a fresh still image. This is not general desktop recording; the camera feature does not capture other apps or record audio. Images are converted locally for the watch.
 
@@ -58,7 +60,7 @@ When configured, camera images travel through your private Tailscale connection 
 
 The Store build runs its bundled gateway as a child of Connector, rather than installing a background LaunchAgent. Notesy vault and attachment access use folders you select and locally stored security-scoped bookmarks. OpenClaw folder access is likewise explicit. Connector's start-at-login preference is optional. Local status checks and caches are not an Organik-hosted collection service. App Store privacy disclosures should describe the final distributed build and its enabled integrations, including direct requests to the third-party services described above.
 
-## Even G2 preview support
+## Even G2 support
 
 The optional Even G2 connection runs inside the same Connector installation. Its
 HTTP service binds to loopback and uses a separate private Tailscale HTTPS route
@@ -78,3 +80,13 @@ The G2 app displays a proposed home action for confirmation before executing it.
 The phone app stores pairing and display preferences locally in its app storage.
 
 Local Parakeet dictation downloads public model assets from Hugging Face during setup. Once cached, transcription runs on the Mac without uploading recordings. Audio is written to a private temporary WAV while the native helper reads it, then deleted after success or failure. The Connector does not retain transcripts. A custom speech provider remains optional and receives recordings only when selected.
+
+### Calendry calendar app for G2
+
+Calendry reads calendar names, event titles, dates, times and locations from your
+Mac through the shared Connector and your private Tailscale connection. It does
+not change calendar events or send calendar content to an AI provider. Calendar
+content stays in memory while Calendry is open. The Even app stores your pairing
+and display/calendar preferences on your device; Disconnect in Calendry removes
+its saved pairing. Your Mac's existing Calendars permission controls access.
+Countdowns are visual readouts and do not create alarms or notifications.
